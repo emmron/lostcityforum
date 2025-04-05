@@ -1,16 +1,48 @@
 ---
 import MainLayout from '../layouts/MainLayout.astro';
 import '../styles/auth.css';
+import { db } from '../lib/db.js';
 
-// Handle form submission (placeholder for now)
+// Initialize variables
+let errorMessage = '';
+let loginUsername = '';
+
+// Handle form submission
 if (Astro.request.method === 'POST') {
-  const formData = await Astro.request.formData();
-  const username = formData.get('username');
-  const password = formData.get('password');
-  // TODO: Add authentication logic
-  console.log('Login attempt:', { username });
-  // Redirect to home page or dashboard after successful login
-  // return Astro.redirect('/');
+  try {
+    const formData = await Astro.request.formData();
+    const identifier = formData.get('username')?.toString() || '';
+    const password = formData.get('password')?.toString() || '';
+
+    // Save username to repopulate form in case of errors
+    loginUsername = identifier;
+
+    // Find user by username or email
+    let user = await db.user.findByUsername(identifier);
+    if (!user) {
+      // If not found by username, try email
+      user = await db.user.findByEmail(identifier);
+    }
+
+    if (!user) {
+      errorMessage = 'Invalid username/email or password';
+    } else {
+      // Verify password
+      const isValidPassword = await db.user.verifyPassword(user, password);
+      if (!isValidPassword) {
+        errorMessage = 'Invalid username/email or password';
+      } else {
+        // Login successful - in a real app, you would set up a session here
+        console.log('Login successful for user:', user.username);
+
+        // Redirect to home page after successful login
+        return Astro.redirect('/');
+      }
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    errorMessage = 'An error occurred during login. Please try again.';
+  }
 }
 
 const registered = Astro.url.searchParams.get('registered') === 'true';
@@ -30,10 +62,16 @@ const registered = Astro.url.searchParams.get('registered') === 'true';
       </div>
     )}
 
+    {errorMessage && (
+      <div class="alert alert-error">
+        {errorMessage}
+      </div>
+    )}
+
     <form method="POST" class="auth-form">
       <div class="form-group">
         <label for="username">Username or Email</label>
-        <input type="text" id="username" name="username" required class="form-control">
+        <input type="text" id="username" name="username" required class="form-control" value={loginUsername}>
       </div>
       <div class="form-group">
         <label for="password">Password</label>
@@ -53,4 +91,12 @@ const registered = Astro.url.searchParams.get('registered') === 'true';
       </p>
     </form>
   </div>
+
+  <style>
+    .alert-error {
+      color: #721c24;
+      background-color: #f8d7da;
+      border-color: #f5c6cb;
+    }
+  </style>
 </MainLayout>
