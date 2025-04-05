@@ -1,3 +1,4 @@
+---
 import MainLayout from "../../layouts/MainLayout.astro";
 
 export function getStaticPaths() {
@@ -278,6 +279,7 @@ const getTopicData = (id) => {
 };
 
 const topic = getTopicData(topicId);
+---
 
 <MainLayout title={topic?.title || "Topic Not Found"}>
   {topic ? (

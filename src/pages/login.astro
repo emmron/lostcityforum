@@ -1,0 +1,56 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import '../styles/auth.css';
+
+// Handle form submission (placeholder for now)
+if (Astro.request.method === 'POST') {
+  const formData = await Astro.request.formData();
+  const username = formData.get('username');
+  const password = formData.get('password');
+  // TODO: Add authentication logic
+  console.log('Login attempt:', { username });
+  // Redirect to home page or dashboard after successful login
+  // return Astro.redirect('/');
+}
+
+const registered = Astro.url.searchParams.get('registered') === 'true';
+---
+
+<MainLayout title="Login">
+  <div class="breadcrumbs">
+    <a href="/">Home</a> &raquo; Login
+  </div>
+
+  <div class="auth-form-container">
+    <h1>Login to Your Account</h1>
+
+    {registered && (
+      <div class="alert alert-success">
+        Registration successful! Please log in.
+      </div>
+    )}
+
+    <form method="POST" class="auth-form">
+      <div class="form-group">
+        <label for="username">Username or Email</label>
+        <input type="text" id="username" name="username" required class="form-control">
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required class="form-control">
+      </div>
+      <div class="form-group form-options">
+        <label>
+          <input type="checkbox" name="remember"> Remember Me
+        </label>
+        <a href="/forgot-password">Forgot Password?</a>
+      </div>
+      <div class="form-group">
+        <button type="submit" class="btn btn-primary">Login</button>
+      </div>
+      <p class="form-footer">
+        Don't have an account? <a href="/register">Register here</a>
+      </p>
+    </form>
+  </div>
+</MainLayout>

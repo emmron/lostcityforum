@@ -1,0 +1,67 @@
+---
+import MainLayout from '../layouts/MainLayout.astro';
+import '../styles/auth.css';
+
+// Handle form submission (placeholder for now)
+if (Astro.request.method === 'POST') {
+  const formData = await Astro.request.formData();
+  const username = formData.get('username');
+  const email = formData.get('email');
+  const password = formData.get('password');
+  // TODO: Add validation and registration logic
+  console.log('Registration attempt:', { username, email });
+  // Redirect to a success page or login page after registration
+  // return Astro.redirect('/login?registered=true');
+}
+---
+
+<MainLayout title="Register">
+  <div class="breadcrumbs">
+    <a href="/">Home</a> &raquo; Register
+  </div>
+
+  <div class="auth-form-container">
+    <h1>Create Your Account</h1>
+
+    <form method="POST" class="auth-form">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required class="form-control">
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required class="form-control">
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required class="form-control">
+      </div>
+      <div class="form-group">
+        <label for="confirm-password">Confirm Password</label>
+        <input type="password" id="confirm-password" name="confirm-password" required class="form-control">
+      </div>
+      <div class="form-group">
+        <button type="submit" class="btn btn-primary">Register</button>
+      </div>
+      <p class="form-footer">
+        Already have an account? <a href="/login">Login here</a>
+      </p>
+    </form>
+  </div>
+
+  <script>
+    const form = document.querySelector('.auth-form');
+    const passwordInput = document.getElementById('password');
+    const confirmPasswordInput = document.getElementById('confirm-password');
+
+    form.addEventListener('submit', (event) => {
+      if (passwordInput.value !== confirmPasswordInput.value) {
+        event.preventDefault(); // Stop form submission
+        alert('Passwords do not match!'); // Simple feedback
+        confirmPasswordInput.focus();
+        // TODO: Implement more sophisticated error display
+      }
+    });
+  </script>
+
+</MainLayout>

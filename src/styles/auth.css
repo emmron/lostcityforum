@@ -1,0 +1,86 @@
+.auth-form-container {
+  max-width: 500px;
+  margin: 40px auto;
+  padding: 30px;
+  background-color: var(--forum-topic-bg);
+  border: 1px solid var(--border-color);
+}
+
+.auth-form-container h1 {
+  color: var(--secondary-color);
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.auth-form .form-group {
+  margin-bottom: 20px;
+}
+
+.auth-form label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+.auth-form .form-control {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  box-sizing: border-box; /* Ensure padding doesn't increase size */
+}
+
+.auth-form button {
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+}
+
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+
+.form-options label {
+    margin-bottom: 0; /* Override default margin */
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.form-options a {
+    color: var(--link-color);
+}
+.form-options a:hover {
+    text-decoration: underline;
+}
+
+.form-footer {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+.form-footer a {
+  color: var(--link-color);
+}
+.form-footer a:hover {
+  text-decoration: underline;
+}
+
+.alert {
+  padding: 15px;
+  margin-bottom: 20px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+}
+
+.alert-success {
+  color: #155724;
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+}
