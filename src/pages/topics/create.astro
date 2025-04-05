@@ -1,0 +1,174 @@
+import MainLayout from "../../layouts/MainLayout.astro";
+import { db } from "../../lib/db.js";
+
+// Get the forum ID from the query string
+const forumId = Astro.url.searchParams.get('forum');
+
+// Redirect if no forum ID is provided
+if (!forumId) {
+  return Astro.redirect('/forums');
+}
+
+// Fetch forum details
+const forum = await db.forum.getById(Number(forumId));
+
+// Redirect if forum doesn't exist
+if (!forum) {
+  return Astro.redirect('/forums');
+}
+
+// Initialize error message
+let errorMessage = '';
+let formData = {
+  title: '',
+  content: ''
+};
+
+// Check if user is logged in
+const isLoggedIn = Astro.cookies.has('user_id');
+
+if (!isLoggedIn) {
+  return Astro.redirect(`/login?returnUrl=${encodeURIComponent(Astro.url.pathname + Astro.url.search)}`);
+}
+
+// Get the user ID from the cookie
+const userId = Number(Astro.cookies.get('user_id').value);
+
+// Fetch the user from the database
+const user = await db.user.findById(userId);
+
+// Handle form submission
+if (Astro.request.method === 'POST') {
+  try {
+    const data = await Astro.request.formData();
+    const title = data.get('title')?.toString().trim();
+    const content = data.get('content')?.toString().trim();
+
+    // Save form data in case of errors
+    formData = { title: title || '', content: content || '' };
+
+    // Validate input
+    if (!title || !content) {
+      errorMessage = 'Title and content are required';
+    } else if (title.length < 3) {
+      errorMessage = 'Title must be at least 3 characters long';
+    } else if (content.length < 10) {
+      errorMessage = 'Content must be at least 10 characters long';
+    } else {
+      // Create the topic
+      const topic = await db.topic.create({
+        title,
+        content,
+        forumId: Number(forumId),
+        authorId: userId
+      });
+
+      // Redirect to the new topic
+      return Astro.redirect(`/topics/${topic.id}`);
+    }
+  } catch (error) {
+    console.error('Error creating topic:', error);
+    errorMessage = 'An error occurred while creating the topic. Please try again.';
+  }
+}
+
+<MainLayout title={`New Topic - ${forum.title}`}>
+  <div class="breadcrumbs">
+    <a href="/">Home</a> &raquo; <a href="/forums">Forums</a> &raquo; <a href={`/forums/${forumId}`}>{forum.title}</a> &raquo; New Topic
+  </div>
+
+  <div class="create-topic">
+    <h1>Create New Topic in {forum.title}</h1>
+
+    {errorMessage && (
+      <div class="alert alert-error">
+        {errorMessage}
+      </div>
+    )}
+
+    <form method="POST" class="topic-form">
+      <div class="form-group">
+        <label for="title">Topic Title</label>
+        <input type="text" id="title" name="title" required class="form-control" value={formData.title}>
+      </div>
+      <div class="form-group">
+        <label for="content">Content</label>
+        <textarea id="content" name="content" required class="form-control post-editor" rows="15">{formData.content}</textarea>
+        <div class="editor-help">
+          <p>You can use basic HTML tags: &lt;p&gt;, &lt;h3&gt;, &lt;h4&gt;, &lt;ul&gt;, &lt;ol&gt;, &lt;li&gt;, &lt;strong&gt;, &lt;em&gt;, &lt;a&gt;</p>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Create Topic</button>
+        <a href={`/forums/${forumId}`} class="btn">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <style>
+    .create-topic {
+      background-color: var(--forum-topic-bg);
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 20px;
+    }
+
+    .create-topic h1 {
+      color: var(--secondary-color);
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+
+    .topic-form {
+      max-width: 800px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 10px;
+      background-color: var(--input-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+    }
+
+    .post-editor {
+      font-family: monospace;
+      line-height: 1.5;
+    }
+
+    .editor-help {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .alert {
+      padding: 15px;
+      margin-bottom: 20px;
+      border: 1px solid transparent;
+      border-radius: 4px;
+    }
+
+    .alert-error {
+      color: #721c24;
+      background-color: #f8d7da;
+      border-color: #f5c6cb;
+    }
+  </style>
+</MainLayout>

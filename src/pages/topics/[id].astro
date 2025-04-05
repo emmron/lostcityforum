@@ -1,363 +1,97 @@
 ---
 import MainLayout from "../../layouts/MainLayout.astro";
+import { db } from "../../lib/db.js";
 
-export function getStaticPaths() {
-  return [
-    { params: { id: '101' }, props: { topicId: 101, forumId: 1, forumTitle: 'Official Announcements' } },
-    { params: { id: '201' }, props: { topicId: 201, forumId: 3, forumTitle: 'General Discussion' } },
-    { params: { id: '301' }, props: { topicId: 301, forumId: 4, forumTitle: 'Guides & Tutorials' } },
-    { params: { id: '401' }, props: { topicId: 401, forumId: 5, forumTitle: 'Technical Support' } },
-    { params: { id: '501' }, props: { topicId: 501, forumId: 6, forumTitle: 'Events & Meetups' } },
-    { params: { id: '601' }, props: { topicId: 601, forumId: 7, forumTitle: 'Media & Screenshots' } },
-    { params: { id: '701' }, props: { topicId: 701, forumId: 8, forumTitle: 'Off-Topic' } }
-  ];
+// Get topic IDs for static paths
+export async function getStaticPaths() {
+  // For SSG, we need to fetch all topics in advance
+  // In a real app with many topics, you might want to use SSR instead with Astro.params
+  return [{ params: { id: "1" } }]; // Just support the initial welcome topic for now
 }
 
-const { topicId, forumId, forumTitle } = Astro.props;
+const { id } = Astro.params;
 
-// Mock topic data
-const getTopicData = (id) => {
-  const topics = {
-    101: {
-      id: 101,
-      title: "Welcome to the Lost City Forum!",
-      isSticky: true,
-      isLocked: false,
-      posts: [
-        {
-          id: 1001,
-          author: "Admin",
-          avatar: "/images/avatars/admin.png",
-          date: "2024-03-15 10:00",
-          content: `<p>Welcome to the official 2004scape Lost City Forum!</p>
-          <p>This is a place for all fans of the 2004 era of RuneScape and especially those who love the Lost City quest and content.</p>
-          <p>Feel free to introduce yourself and join our community. We hope you'll find this forum helpful and enjoyable.</p>
-          <p>Here are some quick links to get you started:</p>
-          <ul>
-            <li><a href="/forums/2">Forum Rules & Guidelines</a></li>
-            <li><a href="/forums/3">General Discussion</a></li>
-            <li><a href="/forums/4">Guides & Tutorials</a></li>
-          </ul>
-          <p>Happy posting!</p>`,
-          signature: "Administrator of the Lost City Forum",
-          isEdited: false
-        },
-        {
-          id: 1002,
-          author: "NewMember",
-          avatar: "/images/avatars/default.png",
-          date: "2024-03-15 14:32",
-          content: `<p>Thanks for setting up this forum! I've been a huge fan of the 2004 era since I first played back in the day.</p>
-          <p>Looking forward to connecting with other players who appreciate this classic version.</p>
-          <p>Is there a specific area where we can share our Lost City quest experiences?</p>`,
-          signature: "Just a noob trying to find my way to Zanaris",
-          isEdited: false
-        },
-        {
-          id: 1003,
-          author: "Admin",
-          avatar: "/images/avatars/admin.png",
-          date: "2024-03-15 15:45",
-          content: `<p>@NewMember - Great to have you here! Yes, you can share your Lost City quest experiences in the <a href="/forums/3">General Discussion</a> forum for now.</p>
-          <p>We might create a dedicated section for quest experiences if there's enough interest.</p>`,
-          signature: "Administrator of the Lost City Forum",
-          isEdited: false
-        }
-      ]
-    },
-    201: {
-      id: 201,
-      title: "What's your favorite Lost City memory?",
-      isSticky: false,
-      isLocked: false,
-      posts: [
-        {
-          id: 2001,
-          author: "OldschoolPlayer",
-          avatar: "/images/avatars/default.png",
-          date: "2024-04-01 12:34",
-          content: `<p>I've been feeling nostalgic lately about the good old days of 2004scape and particularly the Lost City quest.</p>
-          <p>What's your favorite memory from the Lost City quest or the early days of Zanaris?</p>
-          <p>Mine has to be the first time I encountered the Dramen Tree guardian. I was so unprepared and got destroyed multiple times before finally defeating it. The satisfaction of finally getting that Dramen staff was amazing!</p>`,
-          signature: "Playing since 2004 and still terrible at PvP",
-          isEdited: false
-        },
-        {
-          id: 2002,
-          author: "QuestLover",
-          avatar: "/images/avatars/default.png",
-          date: "2024-04-02 09:18",
-          content: `<p>Great topic! My favorite memory has to be entering Zanaris for the first time. The whole fairy city concept was so magical and unlike anything else in the game at that time.</p>
-          <p>I remember being so excited to use the fairy rings after completing the quest. It completely changed how I traveled around the game world!</p>`,
-          signature: "Quest Cape owner since 2005",
-          isEdited: false
-        },
-        {
-          id: 2003,
-          author: "RunescapeVeteran",
-          avatar: "/images/avatars/default.png",
-          date: "2024-04-04 19:45",
-          content: `<p>For me, it was discovering that you could access the market in Zanaris and buy those dragon longswords! It was one of the few places to get them back then.</p>
-          <p>I saved up for weeks to buy my first dragon longsword there. I felt so powerful walking around with it!</p>
-          <p>Also, the random events in Zanaris were pretty unique. Getting turned into a chicken was always fun (and sometimes annoying).</p>`,
-          signature: "Still have my original party hat from 2004",
-          isEdited: false
-        }
-      ]
-    },
-    301: {
-      id: 301,
-      title: "Complete Lost City Quest Guide 2004-style",
-      isSticky: true,
-      isLocked: false,
-      posts: [
-        {
-          id: 3001,
-          author: "QuestMaster",
-          avatar: "/images/avatars/default.png",
-          date: "2024-03-25 11:30",
-          content: `<h3>Lost City Quest Guide (2004 Edition)</h3>
-          <p><strong>Requirements:</strong></p>
-          <ul>
-            <li>31 Crafting</li>
-            <li>36 Woodcutting</li>
-            <li>Ability to defeat a level 95 tree spirit (no specific combat level required, but higher is better)</li>
-          </ul>
-          <p><strong>Items needed:</strong></p>
-          <ul>
-            <li>Knife</li>
-            <li>Axe (any type)</li>
-            <li>Combat equipment for the tree spirit fight</li>
-            <li>Food for healing</li>
-          </ul>
-          <h4>Step 1: Starting the Quest</h4>
-          <p>Speak to the Warrior, Monk, Archer, and Wizard outside the entrance to the Lumbridge Swamp Caves.</p>
-          <p>After speaking with all of them, speak to the Warrior again and ask about the lost city.</p>
-          <h4>Step 2: Finding the Leprechaun</h4>
-          <p>Go to the trees in the southern part of Lumbridge Swamps. Search the trees until you find a Leprechaun named Shamus.</p>
-          <p>Speak to Shamus and he will tell you about a magical dramen tree in Entrana that can create a staff to enter Zanaris.</p>
-          <h4>Step 3: Journey to Entrana</h4>
-          <p>Travel to Port Sarim and board the ship to Entrana. Remember that you cannot bring any weapons or armor to the island.</p>
-          <p>Tip: Bank all your combat gear before going. You can bring runes, food, and crafting materials.</p>
-          <h4>Step 4: The Dramen Tree</h4>
-          <p>On Entrana, head to the northwest part of the island where there's a dungeon entrance.</p>
-          <p>Enter the dungeon and navigate through until you reach the room with the Dramen Tree.</p>
-          <h4>Step 5: Defeating the Tree Spirit</h4>
-          <p>Attempt to cut the Dramen Tree and a level 95 Tree Spirit will appear.</p>
-          <p>Defeat the Tree Spirit using magic (bring runes!) as it's difficult without combat gear.</p>
-          <p>After defeating it, cut the tree to get a Dramen branch.</p>
-          <h4>Step 6: Crafting the Staff</h4>
-          <p>Use your knife on the Dramen branch to create a Dramen staff.</p>
-          <h4>Step 7: Entering Zanaris</h4>
-          <p>Return to Lumbridge Swamp and find the shed in the southern area.</p>
-          <p>While wielding the Dramen staff, enter the shed to be teleported to Zanaris!</p>
-          <p>Congratulations, you've completed the Lost City quest!</p>
-          <p><strong>Rewards:</strong></p>
-          <ul>
-            <li>3 Quest Points</li>
-            <li>Access to Zanaris</li>
-            <li>Ability to buy Dragon longswords</li>
-            <li>Ability to use fairy rings (after Fairy Tale Part 1)</li>
-          </ul>`,
-          signature: "Quest guides for all your 2004 needs",
-          isEdited: false
-        },
-        {
-          id: 3002,
-          author: "FirstTimer",
-          avatar: "/images/avatars/default.png",
-          date: "2024-03-28 14:23",
-          content: `<p>Thank you so much for this guide! I just completed the quest using your instructions and it went perfectly.</p>
-          <p>One tip for others: I found that using fire strike was the most effective way to deal with the tree spirit without having any gear.</p>
-          <p>Zanaris is so cool! Now I need to save up for that dragon longsword...</p>`,
-          signature: "New to 2004scape but loving it",
-          isEdited: false
-        }
-      ]
-    },
-    401: {
-      id: 401,
-      title: "Can't connect to server - help needed",
-      isSticky: false,
-      isLocked: false,
-      posts: [
-        {
-          id: 4001,
-          author: "NewPlayer2004",
-          avatar: "/images/avatars/default.png",
-          date: "2024-04-05 07:45",
-          content: `<p>I'm having trouble connecting to the 2004scape server. I keep getting an error message saying "Connection timed out".</p>
-          <p>I've tried:</p>
-          <ul>
-            <li>Restarting my computer</li>
-            <li>Checking my internet connection</li>
-            <li>Reinstalling the client</li>
-          </ul>
-          <p>Nothing seems to work. Is the server down or is it something on my end?</p>
-          <p>Any help would be appreciated!</p>`,
-          signature: "Just trying to relive 2004",
-          isEdited: false
-        },
-        {
-          id: 4002,
-          author: "TechHelper",
-          avatar: "/images/avatars/default.png",
-          date: "2024-04-05 08:12",
-          content: `<p>Hi NewPlayer2004,</p>
-          <p>The server is currently up and running, so it's likely an issue on your end. Here are a few more things you can try:</p>
-          <ol>
-            <li>Check if you're using the correct server address. It should be "play.2004scape.org" on port 43594.</li>
-            <li>Disable any firewalls or antivirus temporarily to see if they're blocking the connection.</li>
-            <li>Try connecting using a different network (like mobile hotspot) to see if it's your network that's blocking it.</li>
-            <li>Make sure you're using the latest client version from the official website.</li>
-          </ol>
-          <p>Let me know if any of these solutions work for you!</p>`,
-          signature: "I fix things so you don't have to",
-          isEdited: false
-        }
-      ]
-    },
-    501: {
-      id: 501,
-      title: "Wilderness PK Event - Sunday April 7th",
-      isSticky: true,
-      isLocked: false,
-      posts: [
-        {
-          id: 5001,
-          author: "EventCoordinator",
-          avatar: "/images/avatars/default.png",
-          date: "2024-04-01 16:30",
-          content: `<h3>🔥 WILDERNESS PK EVENT 🔥</h3>
-          <p><strong>Date:</strong> Sunday, April 7th, 2024</p>
-          <p><strong>Time:</strong> 8:00 PM GMT / 3:00 PM EST</p>
-          <p><strong>Location:</strong> Edgeville Wilderness (Levels 1-10)</p>
-          <p><strong>Event Details:</strong></p>
-          <p>Join us for an old-school PK event in the Wilderness! We'll be meeting at Edgeville bank to gear up before heading into the wildy for some classic 2004-style PKing.</p>
-          <p><strong>Rules:</strong></p>
-          <ul>
-            <li>All combat styles welcome</li>
-            <li>Max gear value: 500k (to keep it fair for newer players)</li>
-            <li>No teaming up (1v1 fights only)</li>
-            <li>No safespotting</li>
-            <li>Respect other players</li>
-          </ul>
-          <p><strong>Prizes:</strong></p>
-          <ul>
-            <li>Most kills: 1M gold</li>
-            <li>Best streak: Abyssal whip</li>
-            <li>Most creative kill: Dragon medium helm</li>
-            <li>Random participant: 250k gold</li>
-          </ul>
-          <p>Comment below if you're planning to attend! Let's make this a great event for the community!</p>`,
-          signature: "Organizing 2004scape events since 2023",
-          isEdited: false
-        },
-        {
-          id: 5002,
-          author: "PvPLegend",
-          avatar: "/images/avatars/default.png",
-          date: "2024-04-03 21:18",
-          content: `<p>Count me in! I've been wanting to test my PKing skills against other players for a while now.</p>
-          <p>Quick question - are pure accounts allowed? I have a level 50 range/mage pure that I'd like to bring.</p>
-          <p>Also, for anyone who hasn't done much Wilderness PK before, I recommend bringing:</p>
-          <ul>
-            <li>Plenty of food (sharks/monkfish)</li>
-            <li>Teleport runes for quick escape</li>
-            <li>A few strength potions</li>
-            <li>Prayer potions if you're using protection prayers</li>
-          </ul>
-          <p>See you all there!</p>`,
-          signature: "30-0 record in Last Man Standing",
-          isEdited: false
-        }
-      ]
-    }
-  };
+// Increment view count
+await db.topic.incrementViews(Number(id));
 
-  return topics[id] || null;
-};
+// Fetch topic data from database
+const topic = await db.topic.getById(Number(id));
 
-const topic = getTopicData(topicId);
+// If the topic doesn't exist, show 404
+if (!topic) {
+  return Astro.redirect('/404');
+}
+
+// Get forum information for breadcrumbs
+const forumId = topic.forum.id;
+const forumTitle = topic.forum.title;
 ---
 
 <MainLayout title={topic?.title || "Topic Not Found"}>
-  {topic ? (
-    <>
-      <div class="breadcrumbs">
-        <a href="/">Home</a> &raquo; <a href="/forums">Forums</a> &raquo; <a href={`/forums/${forumId}`}>{forumTitle}</a> &raquo; {topic.title}
-      </div>
+  <div class="breadcrumbs">
+    <a href="/">Home</a> &raquo; <a href="/forums">Forums</a> &raquo; <a href={`/forums/${forumId}`}>{forumTitle}</a> &raquo; {topic.title}
+  </div>
 
-      <div class="topic-header">
-        <h1>{topic.title}</h1>
-        <div class="topic-controls">
-          {!topic.isLocked && (
-            <a href={`/topics/${topicId}/reply`} class="btn btn-primary">Reply</a>
-          )}
+  <div class="topic-header">
+    <h1>{topic.title}</h1>
+    <div class="topic-controls">
+      {!topic.isLocked && (
+        <a href={`/topics/${id}/reply`} class="btn btn-primary">Reply</a>
+      )}
+    </div>
+  </div>
+
+  <!-- Posts -->
+  <div class="posts">
+    {topic.posts.map((post, index) => (
+      <div class="post" id={`post-${post.id}`}>
+        <div class="post-header">
+          <div class="post-info">Post #{index + 1} - {new Date(post.createdAt).toLocaleString()}</div>
+          <div class="post-controls">
+            <a href={`#post-${post.id}`} title="Link to this post">#</a>
+            <a href={`/topics/${id}/quote/${post.id}`} title="Quote this post">Quote</a>
+            {post.author.username === "Admin" && (
+              <a href={`/topics/${id}/edit/${post.id}`} title="Edit this post">Edit</a>
+            )}
+          </div>
         </div>
-      </div>
-
-      <!-- Posts -->
-      <div class="posts">
-        {topic.posts.map((post, index) => (
-          <div class="post" id={`post-${post.id}`}>
-            <div class="post-header">
-              <div class="post-info">Post #{index + 1} - {post.date}</div>
-              <div class="post-controls">
-                <a href={`#post-${post.id}`} title="Link to this post">#</a>
-                <a href={`/topics/${topicId}/quote/${post.id}`} title="Quote this post">Quote</a>
-                {post.author === "Admin" && (
-                  <a href={`/topics/${topicId}/edit/${post.id}`} title="Edit this post">Edit</a>
-                )}
-              </div>
+        <div class="post-content">
+          <div class="post-user">
+            <div class="username">{post.author.username}</div>
+            <div class="avatar">
+              <img src={post.author.avatarUrl || "/images/avatars/default.png"} alt={`${post.author.username}'s avatar`} />
             </div>
-            <div class="post-content">
-              <div class="post-user">
-                <div class="username">{post.author}</div>
-                <div class="avatar">
-                  <img src={post.avatar || "/images/avatars/default.png"} alt={`${post.author}'s avatar`} />
-                </div>
-                <div class="user-info">
-                  <div class="join-date">Joined: Mar 2024</div>
-                  <div class="post-count">Posts: 42</div>
-                </div>
-              </div>
-              <div class="post-body">
-                <div class="post-text" set:html={post.content} />
-                {post.isEdited && <div class="edited-note">This post was edited on {post.editDate}</div>}
-                {post.signature && (
-                  <div class="signature">
-                    <hr />
-                    <p>{post.signature}</p>
-                  </div>
-                )}
-              </div>
+            <div class="user-info">
+              <div class="join-date">Joined: {new Date(post.author.createdAt).toLocaleDateString()}</div>
+              <div class="post-count">Posts: {post.author.postsCount}</div>
             </div>
           </div>
-        ))}
-      </div>
-
-      <!-- Reply Button at Bottom -->
-      <div class="topic-footer">
-        <div class="paginator">
-          <a href="#" class="current">1</a>
-          <a href="#">2</a>
-          <a href="#">Next &raquo;</a>
+          <div class="post-body">
+            <div class="post-text" set:html={post.content} />
+            {post.isEdited && <div class="edited-note">This post was edited on {new Date(post.editedAt).toLocaleString()}</div>}
+            {post.author.signature && (
+              <div class="signature">
+                <hr />
+                <p>{post.author.signature}</p>
+              </div>
+            )}
+          </div>
         </div>
-        {!topic.isLocked ? (
-          <a href={`/topics/${topicId}/reply`} class="btn btn-primary">Reply</a>
-        ) : (
-          <div class="locked-notice">This topic is locked and cannot be replied to</div>
-        )}
       </div>
-    </>
-  ) : (
-    <div class="not-found">
-      <h1>Topic Not Found</h1>
-      <p>The topic you're looking for does not exist or has been removed.</p>
-      <a href="/forums" class="btn">Return to Forums</a>
+    ))}
+  </div>
+
+  <!-- Reply Button at Bottom -->
+  <div class="topic-footer">
+    <div class="paginator">
+      <a href="#" class="current">1</a>
     </div>
-  )}
+    {!topic.isLocked ? (
+      <a href={`/topics/${id}/reply`} class="btn btn-primary">Reply</a>
+    ) : (
+      <div class="locked-notice">This topic is locked and cannot be replied to</div>
+    )}
+  </div>
 
   <style>
     .topic-header {
@@ -397,6 +131,26 @@ const topic = getTopicData(topicId);
 
     .post-controls a:hover {
       text-decoration: underline;
+    }
+
+    .post-content {
+      display: flex;
+      border: 1px solid var(--border-color);
+      border-top: none;
+      background-color: var(--post-bg);
+    }
+
+    .post-user {
+      flex: 0 0 150px;
+      padding: 15px;
+      border-right: 1px solid var(--border-color);
+      background-color: var(--forum-topic-alt);
+      text-align: center;
+    }
+
+    .post-body {
+      flex: 1;
+      padding: 15px;
     }
 
     .username {
@@ -466,22 +220,6 @@ const topic = getTopicData(topicId);
       padding: 8px 15px;
       border: 1px solid var(--primary-color);
       border-radius: 3px;
-    }
-
-    .not-found {
-      text-align: center;
-      padding: 40px 20px;
-      background-color: var(--forum-topic-bg);
-      border: 1px solid var(--border-color);
-    }
-
-    .not-found h1 {
-      color: var(--secondary-color);
-      margin-bottom: 20px;
-    }
-
-    .not-found p {
-      margin-bottom: 20px;
     }
   </style>
 </MainLayout>

@@ -1,0 +1,165 @@
+import MainLayout from "../../../layouts/MainLayout.astro";
+import { db } from "../../../lib/db.js";
+
+// Get the topic ID from the parameters
+const { id } = Astro.params;
+
+// Fetch topic details
+const topic = await db.topic.getById(Number(id));
+
+// Redirect if topic doesn't exist
+if (!topic) {
+  return Astro.redirect('/forums');
+}
+
+// If topic is locked, redirect to topic page
+if (topic.isLocked) {
+  return Astro.redirect(`/topics/${id}`);
+}
+
+// Initialize error message
+let errorMessage = '';
+let formData = {
+  content: ''
+};
+
+// Check if user is logged in
+const isLoggedIn = Astro.cookies.has('user_id');
+
+if (!isLoggedIn) {
+  return Astro.redirect(`/login?returnUrl=${encodeURIComponent(Astro.url.pathname)}`);
+}
+
+// Get the user ID from the cookie
+const userId = Number(Astro.cookies.get('user_id').value);
+
+// Fetch the user from the database
+const user = await db.user.findById(userId);
+
+// Handle form submission
+if (Astro.request.method === 'POST') {
+  try {
+    const data = await Astro.request.formData();
+    const content = data.get('content')?.toString().trim();
+
+    // Save form data in case of errors
+    formData = { content: content || '' };
+
+    // Validate input
+    if (!content) {
+      errorMessage = 'Content is required';
+    } else if (content.length < 10) {
+      errorMessage = 'Content must be at least 10 characters long';
+    } else {
+      // Create the post
+      await db.post.create({
+        content,
+        topicId: Number(id),
+        authorId: userId
+      });
+
+      // Redirect to the topic
+      return Astro.redirect(`/topics/${id}#post-${topic.posts.length + 1}`);
+    }
+  } catch (error) {
+    console.error('Error creating reply:', error);
+    errorMessage = 'An error occurred while submitting your reply. Please try again.';
+  }
+}
+
+<MainLayout title={`Reply to ${topic.title}`}>
+  <div class="breadcrumbs">
+    <a href="/">Home</a> &raquo; <a href="/forums">Forums</a> &raquo; <a href={`/forums/${topic.forum.id}`}>{topic.forum.title}</a> &raquo; <a href={`/topics/${id}`}>{topic.title}</a> &raquo; Reply
+  </div>
+
+  <div class="create-reply">
+    <h1>Reply to: {topic.title}</h1>
+
+    {errorMessage && (
+      <div class="alert alert-error">
+        {errorMessage}
+      </div>
+    )}
+
+    <form method="POST" class="reply-form">
+      <div class="form-group">
+        <label for="content">Your Reply</label>
+        <textarea id="content" name="content" required class="form-control post-editor" rows="15">{formData.content}</textarea>
+        <div class="editor-help">
+          <p>You can use basic HTML tags: &lt;p&gt;, &lt;h3&gt;, &lt;h4&gt;, &lt;ul&gt;, &lt;ol&gt;, &lt;li&gt;, &lt;strong&gt;, &lt;em&gt;, &lt;a&gt;</p>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Post Reply</button>
+        <a href={`/topics/${id}`} class="btn">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <style>
+    .create-reply {
+      background-color: var(--forum-topic-bg);
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 20px;
+    }
+
+    .create-reply h1 {
+      color: var(--secondary-color);
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+
+    .reply-form {
+      max-width: 800px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 10px;
+      background-color: var(--input-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+    }
+
+    .post-editor {
+      font-family: monospace;
+      line-height: 1.5;
+    }
+
+    .editor-help {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .alert {
+      padding: 15px;
+      margin-bottom: 20px;
+      border: 1px solid transparent;
+      border-radius: 4px;
+    }
+
+    .alert-error {
+      color: #721c24;
+      background-color: #f8d7da;
+      border-color: #f5c6cb;
+    }
+  </style>
+</MainLayout>

@@ -20,4 +20,60 @@ model User {
   passwordHash  String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  avatarUrl     String?
+  signature     String?
+  postsCount    Int      @default(0)
+  posts         Post[]
+  topics        Topic[]
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  forums    Forum[]
+}
+
+model Forum {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  sortOrder   Int      @default(0)
+  topicsCount Int      @default(0)
+  postsCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  categoryId  Int
+  category    Category @relation(fields: [categoryId], references: [id])
+  topics      Topic[]
+}
+
+model Topic {
+  id        Int      @id @default(autoincrement())
+  title     String
+  views     Int      @default(0)
+  isSticky  Boolean  @default(false)
+  isLocked  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  forumId   Int
+  forum     Forum    @relation(fields: [forumId], references: [id])
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
+  posts     Post[]
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  content   String
+  isEdited  Boolean  @default(false)
+  editedAt  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
+  topicId   Int
+  topic     Topic    @relation(fields: [topicId], references: [id])
 }

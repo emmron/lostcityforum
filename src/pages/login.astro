@@ -7,12 +7,16 @@ import { db } from '../lib/db.js';
 let errorMessage = '';
 let loginUsername = '';
 
+// Get returnUrl from query parameters
+const returnUrl = Astro.url.searchParams.get('returnUrl') || '/';
+
 // Handle form submission
 if (Astro.request.method === 'POST') {
   try {
     const formData = await Astro.request.formData();
     const identifier = formData.get('username')?.toString() || '';
     const password = formData.get('password')?.toString() || '';
+    const remember = formData.has('remember');
 
     // Save username to repopulate form in case of errors
     loginUsername = identifier;
@@ -32,11 +36,24 @@ if (Astro.request.method === 'POST') {
       if (!isValidPassword) {
         errorMessage = 'Invalid username/email or password';
       } else {
-        // Login successful - in a real app, you would set up a session here
-        console.log('Login successful for user:', user.username);
+        // Login successful - set cookie
+        const cookieOptions = {
+          path: '/',
+          httpOnly: true,
+          secure: import.meta.env.PROD,
+          sameSite: 'strict',
+        };
 
-        // Redirect to home page after successful login
-        return Astro.redirect('/');
+        // If remember me is checked, set cookie expiry to 30 days
+        if (remember) {
+          cookieOptions.maxAge = 60 * 60 * 24 * 30; // 30 days
+        }
+
+        // Set user cookie
+        Astro.cookies.set('user_id', user.id.toString(), cookieOptions);
+
+        // Redirect to home page or returnUrl after successful login
+        return Astro.redirect(returnUrl);
       }
     }
   } catch (error) {

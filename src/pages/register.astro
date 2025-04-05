@@ -72,7 +72,7 @@ if (Astro.request.method === 'POST') {
       </div>
     )}
 
-    <form method="POST" class="auth-form" enctype="application/x-www-form-urlencoded">
+    <form method="POST" class="auth-form" enctype="multipart/form-data">
       <div class="form-group">
         <label for="username">Username</label>
         <input type="text" id="username" name="username" required class="form-control" value={formData.username}>
