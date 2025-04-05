@@ -1,3 +1,4 @@
+---
 import MainLayout from "../../../layouts/MainLayout.astro";
 import { db } from "../../../lib/db.js";
 
@@ -66,6 +67,7 @@ if (Astro.request.method === 'POST') {
     errorMessage = 'An error occurred while submitting your reply. Please try again.';
   }
 }
+---
 
 <MainLayout title={`Reply to ${topic.title}`}>
   <div class="breadcrumbs">
@@ -81,7 +83,7 @@ if (Astro.request.method === 'POST') {
       </div>
     )}
 
-    <form method="POST" class="reply-form">
+    <form method="POST" class="reply-form" enctype="multipart/form-data">
       <div class="form-group">
         <label for="content">Your Reply</label>
         <textarea id="content" name="content" required class="form-control post-editor" rows="15">{formData.content}</textarea>

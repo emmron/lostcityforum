@@ -1,3 +1,4 @@
+---
 import MainLayout from "../../layouts/MainLayout.astro";
 import { db } from "../../lib/db.js";
 
@@ -71,6 +72,7 @@ if (Astro.request.method === 'POST') {
     errorMessage = 'An error occurred while creating the topic. Please try again.';
   }
 }
+---
 
 <MainLayout title={`New Topic - ${forum.title}`}>
   <div class="breadcrumbs">
@@ -86,7 +88,7 @@ if (Astro.request.method === 'POST') {
       </div>
     )}
 
-    <form method="POST" class="topic-form">
+    <form method="POST" class="topic-form" enctype="multipart/form-data">
       <div class="form-group">
         <label for="title">Topic Title</label>
         <input type="text" id="title" name="title" required class="form-control" value={formData.title}>
