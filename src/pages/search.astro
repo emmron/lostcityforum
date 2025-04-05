@@ -1,0 +1,261 @@
+---
+import MainLayout from "../layouts/MainLayout.astro";
+
+// Get search query from URL parameters
+const { q, forum, author, date } = Astro.url.searchParams;
+
+// Mock search results (only shown if there's a query)
+const searchResults = q ? [
+  {
+    id: 101,
+    type: "topic",
+    title: "Welcome to the Lost City Forum!",
+    author: "Admin",
+    date: "2024-03-15 10:00",
+    forum: { id: 1, name: "Official Announcements" },
+    snippet: "...Welcome to the official <span class='highlight'>2004scape Lost City</span> Forum! This is a place for all fans of the 2004 era..."
+  },
+  {
+    id: 201,
+    type: "topic",
+    title: "What's your favorite Lost City memory?",
+    author: "OldschoolPlayer",
+    date: "2024-04-01 12:34",
+    forum: { id: 3, name: "General Discussion" },
+    snippet: "...I've been feeling nostalgic lately about the good old days of <span class='highlight'>2004scape</span> and particularly the <span class='highlight'>Lost City</span> quest..."
+  },
+  {
+    id: 301,
+    type: "topic",
+    title: "Complete Lost City Quest Guide 2004-style",
+    author: "QuestMaster",
+    date: "2024-03-25 11:30",
+    forum: { id: 4, name: "Guides & Tutorials" },
+    snippet: "<span class='highlight'>Lost City</span> Quest Guide (<span class='highlight'>2004</span> Edition) Requirements: 31 Crafting, 36 Woodcutting, Ability to defeat a level 95 tree spirit..."
+  },
+  {
+    id: 1002,
+    type: "post",
+    topic: { id: 101, title: "Welcome to the Lost City Forum!" },
+    author: "NewMember",
+    date: "2024-03-15 14:32",
+    forum: { id: 1, name: "Official Announcements" },
+    snippet: "...Thanks for setting up this forum! I've been a huge fan of the <span class='highlight'>2004</span> era since I first played back in the day..."
+  },
+  {
+    id: 2001,
+    type: "post",
+    topic: { id: 201, title: "What's your favorite Lost City memory?" },
+    author: "OldschoolPlayer",
+    date: "2024-04-01 12:34",
+    forum: { id: 3, name: "General Discussion" },
+    snippet: "...Mine has to be the first time I encountered the Dramen Tree guardian in <span class='highlight'>Lost City</span>. I was so unprepared..."
+  }
+] : [];
+---
+
+<MainLayout title="Search">
+  <div class="breadcrumbs">
+    <a href="/">Home</a> &raquo; Search
+  </div>
+
+  <h1>Search the Forum</h1>
+
+  <form class="search-form" action="/search" method="get">
+    <div class="form-group">
+      <label for="q" class="form-label">Search Terms</label>
+      <input type="text" id="q" name="q" class="form-control" value={q || ""} required>
+    </div>
+
+    <div class="advanced-search">
+      <div class="form-group">
+        <label for="forum" class="form-label">Forum</label>
+        <select id="forum" name="forum" class="form-control">
+          <option value="">All Forums</option>
+          <option value="1" selected={forum === "1"}>Official Announcements</option>
+          <option value="2" selected={forum === "2"}>Rules & Guidelines</option>
+          <option value="3" selected={forum === "3"}>General Discussion</option>
+          <option value="4" selected={forum === "4"}>Guides & Tutorials</option>
+          <option value="5" selected={forum === "5"}>Technical Support</option>
+          <option value="6" selected={forum === "6"}>Events & Meetups</option>
+          <option value="7" selected={forum === "7"}>Media & Screenshots</option>
+          <option value="8" selected={forum === "8"}>Off-Topic</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="author" class="form-label">Author</label>
+        <input type="text" id="author" name="author" class="form-control" value={author || ""}>
+      </div>
+
+      <div class="form-group">
+        <label for="date" class="form-label">Date Range</label>
+        <select id="date" name="date" class="form-control">
+          <option value="" selected={!date}>Any Time</option>
+          <option value="1" selected={date === "1"}>Today</option>
+          <option value="7" selected={date === "7"}>Last Week</option>
+          <option value="30" selected={date === "30"}>Last Month</option>
+          <option value="90" selected={date === "90"}>Last 3 Months</option>
+          <option value="365" selected={date === "365"}>Last Year</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group search-options">
+      <div>
+        <input type="checkbox" id="search_titles" name="search_titles" value="1" checked>
+        <label for="search_titles">Search Titles Only</label>
+      </div>
+      <div>
+        <input type="checkbox" id="search_posts" name="search_posts" value="1" checked>
+        <label for="search_posts">Search Posts Content</label>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">Search</button>
+      <button type="reset" class="btn">Reset</button>
+    </div>
+  </form>
+
+  {searchResults.length > 0 && (
+    <div class="search-results">
+      <h2>Search Results for "{q}"</h2>
+      <p class="result-count">{searchResults.length} results found</p>
+
+      <div class="result-list">
+        {searchResults.map((result) => (
+          <div class="result-item">
+            <div class="result-title">
+              {result.type === "topic" ? (
+                <a href={`/topics/${result.id}`}>{result.title}</a>
+              ) : (
+                <a href={`/topics/${result.topic.id}#post-${result.id}`}>Re: {result.topic.title}</a>
+              )}
+            </div>
+            <div class="result-meta">
+              <span>Posted by {result.author} in <a href={`/forums/${result.forum.id}`}>{result.forum.name}</a> on {result.date}</span>
+            </div>
+            <div class="result-snippet" set:html={result.snippet} />
+          </div>
+        ))}
+      </div>
+
+      <div class="paginator">
+        <a href="#" class="current">1</a>
+        <a href="#">2</a>
+        <a href="#">3</a>
+        <a href="#">Next &raquo;</a>
+      </div>
+    </div>
+  )}
+
+  {q && searchResults.length === 0 && (
+    <div class="no-results">
+      <p>No results found for your search query.</p>
+      <p>Try using different keywords or removing filters to broaden your search.</p>
+    </div>
+  )}
+
+  <style>
+    h1 {
+      color: var(--secondary-color);
+      margin-bottom: 20px;
+    }
+
+    .search-form {
+      background-color: var(--forum-topic-bg);
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 30px;
+    }
+
+    .advanced-search {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+
+    .search-options {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 15px;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .search-results h2 {
+      color: var(--secondary-color);
+      margin-bottom: 10px;
+    }
+
+    .result-count {
+      color: #999;
+      margin-bottom: 20px;
+      font-style: italic;
+    }
+
+    .result-list {
+      margin-bottom: 20px;
+    }
+
+    .result-item {
+      padding: 15px;
+      border: 1px solid var(--border-color);
+      background-color: var(--forum-topic-bg);
+      margin-bottom: 15px;
+    }
+
+    .result-title {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .result-title a {
+      color: var(--link-color);
+      text-decoration: none;
+    }
+
+    .result-title a:hover {
+      text-decoration: underline;
+    }
+
+    .result-meta {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 10px;
+    }
+
+    .result-meta a {
+      color: #999;
+      text-decoration: underline;
+    }
+
+    .result-snippet {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .highlight {
+      background-color: rgba(255, 204, 51, 0.3);
+      padding: 0 2px;
+      border-radius: 2px;
+    }
+
+    .no-results {
+      background-color: var(--forum-topic-bg);
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      text-align: center;
+    }
+
+    .no-results p {
+      margin-bottom: 10px;
+    }
+  </style>
+</MainLayout>

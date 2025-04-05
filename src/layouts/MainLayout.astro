@@ -1,0 +1,53 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = "A forum for 2004scape Lost City fans" } = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <title>{title} | 2004scape Lost City Forum</title>
+    <link rel="stylesheet" href="/styles/global.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header class="main-header">
+        <div class="header-top">
+          <a href="/" class="logo">
+            <h1>Lost City Forum</h1>
+          </a>
+          <div class="user-controls">
+            <a href="/login" class="btn btn-primary">Login</a>
+            <a href="/register" class="btn">Register</a>
+          </div>
+        </div>
+        <nav class="main-nav">
+          <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/forums">Forums</a></li>
+            <li><a href="/members">Members</a></li>
+            <li><a href="/search">Search</a></li>
+          </ul>
+        </nav>
+      </header>
+      <main>
+        <slot />
+      </main>
+      <footer class="main-footer">
+        <p>&copy; {new Date().getFullYear()} 2004scape Lost City Forum. All rights reserved.</p>
+        <p>
+          <a href="/rules">Forum Rules</a> |
+          <a href="/privacy">Privacy Policy</a> |
+          <a href="/contact">Contact</a>
+        </p>
+      </footer>
+    </div>
+  </body>
+</html>

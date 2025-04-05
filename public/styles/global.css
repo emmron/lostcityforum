@@ -1,0 +1,361 @@
+/* Global Styles for 2004scape Lost City Forum */
+:root {
+  --primary-color: #8a0303;
+  --secondary-color: #c9aa71;
+  --background-color: #000000;
+  --container-bg: #111111;
+  --text-color: #d9d9d9;
+  --link-color: #ffcc33;
+  --link-hover: #ffffff;
+  --border-color: #3a3a3a;
+  --input-bg: #222222;
+  --button-bg: #8a0303;
+  --button-hover: #b30000;
+  --header-bg: #1a1a1a;
+  --footer-bg: #1a1a1a;
+  --forum-category-bg: #1a1a1a;
+  --forum-topic-bg: #222222;
+  --forum-topic-alt: #1a1a1a;
+  --post-bg: #222222;
+  --post-header: #1a1a1a;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Verdana', 'Arial', sans-serif;
+  background-color: var(--background-color);
+  background-image: url('/images/background.jpg');
+  background-size: cover;
+  background-attachment: fixed;
+  color: var(--text-color);
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 20px auto;
+  padding: 0;
+  background-color: var(--container-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+/* Header */
+.main-header {
+  background-color: var(--header-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.header-top {
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo h1 {
+  color: var(--secondary-color);
+  font-size: 24px;
+  font-weight: bold;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.logo {
+  text-decoration: none;
+}
+
+.user-controls {
+  display: flex;
+  gap: 10px;
+}
+
+/* Navigation */
+.main-nav {
+  background-color: var(--primary-color);
+  padding: 0 10px;
+}
+
+.main-nav ul {
+  list-style: none;
+  display: flex;
+}
+
+.main-nav li {
+  position: relative;
+}
+
+.main-nav a {
+  display: block;
+  color: var(--text-color);
+  text-decoration: none;
+  padding: 10px 15px;
+  font-weight: bold;
+}
+
+.main-nav a:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--link-hover);
+}
+
+/* Main Content */
+main {
+  padding: 20px;
+}
+
+/* Footer */
+.main-footer {
+  background-color: var(--footer-bg);
+  padding: 15px 20px;
+  text-align: center;
+  border-top: 1px solid var(--border-color);
+  font-size: 12px;
+}
+
+.main-footer a {
+  color: var(--link-color);
+  text-decoration: none;
+}
+
+.main-footer a:hover {
+  text-decoration: underline;
+  color: var(--link-hover);
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  padding: 5px 15px;
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  text-decoration: none;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn:hover {
+  background-color: var(--border-color);
+}
+
+.btn-primary {
+  background-color: var(--button-bg);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--button-hover);
+}
+
+/* Forum Categories */
+.forum-categories {
+  margin-bottom: 20px;
+}
+
+.category {
+  margin-bottom: 20px;
+}
+
+.category-header {
+  background-color: var(--primary-color);
+  padding: 10px 15px;
+  border: 1px solid var(--border-color);
+  font-weight: bold;
+  color: var(--secondary-color);
+}
+
+.forum-list {
+  list-style: none;
+}
+
+.forum-item {
+  display: grid;
+  grid-template-columns: 3fr 1fr 1fr;
+  padding: 15px;
+  border: 1px solid var(--border-color);
+  border-top: none;
+  background-color: var(--forum-category-bg);
+}
+
+.forum-item:nth-child(even) {
+  background-color: var(--input-bg);
+}
+
+.forum-details h3 {
+  margin-bottom: 5px;
+}
+
+.forum-details h3 a {
+  color: var(--link-color);
+  text-decoration: none;
+}
+
+.forum-details h3 a:hover {
+  text-decoration: underline;
+}
+
+.forum-stats, .forum-last-post {
+  font-size: 13px;
+}
+
+/* Topics List */
+.topics-list {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.topics-list th {
+  background-color: var(--primary-color);
+  color: var(--secondary-color);
+  padding: 10px;
+  text-align: left;
+  border: 1px solid var(--border-color);
+}
+
+.topics-list tr {
+  background-color: var(--forum-topic-bg);
+}
+
+.topics-list tr:nth-child(even) {
+  background-color: var(--forum-topic-alt);
+}
+
+.topics-list td {
+  padding: 12px 10px;
+  border: 1px solid var(--border-color);
+}
+
+.topic-title a {
+  color: var(--link-color);
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.topic-title a:hover {
+  text-decoration: underline;
+}
+
+.paginator {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  margin: 20px 0;
+}
+
+.paginator a {
+  padding: 5px 10px;
+  border: 1px solid var(--border-color);
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  text-decoration: none;
+}
+
+.paginator a:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.paginator .current {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+/* Posts */
+.post {
+  margin-bottom: 20px;
+  border: 1px solid var(--border-color);
+  background-color: var(--post-bg);
+}
+
+.post-header {
+  background-color: var(--post-header);
+  padding: 10px 15px;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.post-content {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+}
+
+.post-user {
+  padding: 15px;
+  border-right: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.post-user img {
+  max-width: 100px;
+  height: auto;
+  border: 1px solid var(--border-color);
+}
+
+.post-body {
+  padding: 15px;
+  word-break: break-word;
+}
+
+/* Forms */
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.form-control {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  background-color: var(--input-bg);
+  color: var(--text-color);
+}
+
+textarea.form-control {
+  min-height: 150px;
+  resize: vertical;
+}
+
+/* Responsiveness */
+@media (max-width: 768px) {
+  .forum-item {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .post-content {
+    grid-template-columns: 1fr;
+  }
+
+  .post-user {
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+}
+
+/* Breadcrumbs */
+.breadcrumbs {
+  margin-bottom: 20px;
+  padding: 8px 15px;
+  background-color: var(--forum-category-bg);
+  border: 1px solid var(--border-color);
+}
+
+.breadcrumbs a {
+  color: var(--link-color);
+  text-decoration: none;
+}
+
+.breadcrumbs a:hover {
+  text-decoration: underline;
+}

@@ -1,0 +1,298 @@
+import MainLayout from "../../layouts/MainLayout.astro";
+
+export function getStaticPaths() {
+  return [
+    { params: { id: '1' }, props: { forumId: 1, title: 'Official Announcements' } },
+    { params: { id: '2' }, props: { forumId: 2, title: 'Rules & Guidelines' } },
+    { params: { id: '3' }, props: { forumId: 3, title: 'General Discussion' } },
+    { params: { id: '4' }, props: { forumId: 4, title: 'Guides & Tutorials' } },
+    { params: { id: '5' }, props: { forumId: 5, title: 'Technical Support' } },
+    { params: { id: '6' }, props: { forumId: 6, title: 'Events & Meetups' } },
+    { params: { id: '7' }, props: { forumId: 7, title: 'Media & Screenshots' } },
+    { params: { id: '8' }, props: { forumId: 8, title: 'Off-Topic' } },
+  ];
+}
+
+const { forumId, title } = Astro.props;
+
+// Mock topic data based on forum ID
+const getTopics = (id) => {
+  // In a real app, you'd fetch this from a database
+  const allTopics = {
+    1: [
+      {
+        id: 101,
+        title: "Welcome to the Lost City Forum!",
+        author: "Admin",
+        replies: 33,
+        views: 1245,
+        lastPost: { date: "2024-04-05 15:32", author: "NewMember" },
+        isSticky: true,
+        isLocked: false
+      },
+      {
+        id: 102,
+        title: "Important: Forum Guidelines Update",
+        author: "Moderator",
+        replies: 12,
+        views: 854,
+        lastPost: { date: "2024-03-22 09:45", author: "Admin" },
+        isSticky: true,
+        isLocked: false
+      },
+      {
+        id: 103,
+        title: "Server Maintenance - April 10th",
+        author: "Admin",
+        replies: 8,
+        views: 623,
+        lastPost: { date: "2024-04-05 11:13", author: "TechnicalSupport" },
+        isSticky: false,
+        isLocked: false
+      },
+      {
+        id: 104,
+        title: "Lost City Community Event - April 15th",
+        author: "EventCoordinator",
+        replies: 24,
+        views: 912,
+        lastPost: { date: "2024-04-04 18:30", author: "CommunityMember" },
+        isSticky: false,
+        isLocked: false
+      }
+    ],
+    3: [
+      {
+        id: 201,
+        title: "What's your favorite Lost City memory?",
+        author: "OldschoolPlayer",
+        replies: 48,
+        views: 1378,
+        lastPost: { date: "2024-04-04 19:45", author: "RunescapeVeteran" },
+        isSticky: false,
+        isLocked: false
+      },
+      {
+        id: 202,
+        title: "How did you first find out about 2004scape?",
+        author: "NewToOldSchool",
+        replies: 32,
+        views: 967,
+        lastPost: { date: "2024-04-03 22:10", author: "OldschoolFan" },
+        isSticky: false,
+        isLocked: false
+      },
+      {
+        id: 203,
+        title: "The best weapons in 2004 era",
+        author: "CombatLover",
+        replies: 64,
+        views: 1543,
+        lastPost: { date: "2024-04-05 08:35", author: "DragonSlayer" },
+        isSticky: false,
+        isLocked: false
+      },
+      {
+        id: 204,
+        title: "Skills worth training in 2004 version",
+        author: "SkillMaster",
+        replies: 37,
+        views: 1089,
+        lastPost: { date: "2024-04-02 14:22", author: "MaxedAccount" },
+        isSticky: false,
+        isLocked: false
+      },
+      {
+        id: 205,
+        title: "Best quests from the 2004 era",
+        author: "QuestLover",
+        replies: 41,
+        views: 1156,
+        lastPost: { date: "2024-04-01 17:08", author: "LostCityFan" },
+        isSticky: false,
+        isLocked: false
+      }
+    ],
+    4: [
+      {
+        id: 301,
+        title: "Complete Lost City Quest Guide 2004-style",
+        author: "QuestMaster",
+        replies: 12,
+        views: 567,
+        lastPost: { date: "2024-03-28 14:23", author: "FirstTimer" },
+        isSticky: true,
+        isLocked: false
+      },
+      {
+        id: 302,
+        title: "Beginner's Guide to Combat in 2004scape",
+        author: "CombatTrainer",
+        replies: 15,
+        views: 489,
+        lastPost: { date: "2024-03-25 11:42", author: "NewFighter" },
+        isSticky: false,
+        isLocked: false
+      }
+    ],
+    5: [
+      {
+        id: 401,
+        title: "Can't connect to server - help needed",
+        author: "NewPlayer2004",
+        replies: 5,
+        views: 148,
+        lastPost: { date: "2024-04-05 08:12", author: "TechHelper" },
+        isSticky: false,
+        isLocked: false
+      }
+    ],
+    6: [
+      {
+        id: 501,
+        title: "Wilderness PK Event - Sunday April 7th",
+        author: "EventCoordinator",
+        replies: 17,
+        views: 432,
+        lastPost: { date: "2024-04-03 21:18", author: "PvPLegend" },
+        isSticky: true,
+        isLocked: false
+      }
+    ],
+    7: [
+      {
+        id: 601,
+        title: "My 2004 Lost City collection of screenshots",
+        author: "Nostalgic2004",
+        replies: 9,
+        views: 321,
+        lastPost: { date: "2024-04-01 16:54", author: "ScreenshotLover" },
+        isSticky: false,
+        isLocked: false
+      }
+    ],
+    8: [
+      {
+        id: 701,
+        title: "Other 2004-era games you play?",
+        author: "GamerFromThePast",
+        replies: 22,
+        views: 465,
+        lastPost: { date: "2024-04-04 22:07", author: "GameCollector" },
+        isSticky: false,
+        isLocked: false
+      }
+    ]
+  };
+
+  // Return topics for the given forum ID, or empty array if none exist
+  return allTopics[id] || [];
+};
+
+const topics = getTopics(forumId);
+
+<MainLayout title={title}>
+  <div class="breadcrumbs">
+    <a href="/">Home</a> &raquo; <a href="/forums">Forums</a> &raquo; {title}
+  </div>
+
+  <div class="forum-header">
+    <h1>{title}</h1>
+    <a href={`/topics/create?forum=${forumId}`} class="btn btn-primary">New Topic</a>
+  </div>
+
+  {topics.length > 0 ? (
+    <table class="topics-list">
+      <thead>
+        <tr>
+          <th>Topic</th>
+          <th>Author</th>
+          <th>Replies</th>
+          <th>Views</th>
+          <th>Last Post</th>
+        </tr>
+      </thead>
+      <tbody>
+        {topics.map((topic) => (
+          <tr class={topic.isSticky ? "sticky-topic" : ""}>
+            <td class="topic-title">
+              {topic.isSticky && <span class="topic-sticky">Sticky: </span>}
+              {topic.isLocked && <span class="topic-locked">Locked: </span>}
+              <a href={`/topics/${topic.id}`}>{topic.title}</a>
+            </td>
+            <td>{topic.author}</td>
+            <td>{topic.replies}</td>
+            <td>{topic.views}</td>
+            <td>
+              <div>{topic.lastPost.date}</div>
+              <div>by {topic.lastPost.author}</div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  ) : (
+    <div class="no-topics">
+      <p>There are no topics in this forum yet.</p>
+      <p>
+        <a href={`/topics/create?forum=${forumId}`} class="btn">Create the first topic</a>
+      </p>
+    </div>
+  )}
+
+  <div class="forum-footer">
+    <div class="paginator">
+      <a href="#" class="current">1</a>
+      <a href="#">2</a>
+      <a href="#">3</a>
+      <a href="#">Next &raquo;</a>
+    </div>
+    <a href={`/topics/create?forum=${forumId}`} class="btn btn-primary">New Topic</a>
+  </div>
+
+  <style>
+    .forum-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .forum-header h1 {
+      color: var(--secondary-color);
+      font-size: 24px;
+    }
+
+    .sticky-topic {
+      background-color: rgba(138, 3, 3, 0.1) !important;
+    }
+
+    .topic-sticky {
+      color: var(--primary-color);
+      font-weight: bold;
+    }
+
+    .topic-locked {
+      color: #666;
+      font-weight: bold;
+    }
+
+    .no-topics {
+      background-color: var(--forum-topic-bg);
+      padding: 30px;
+      text-align: center;
+      border: 1px solid var(--border-color);
+    }
+
+    .no-topics p {
+      margin-bottom: 15px;
+    }
+
+    .forum-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 20px;
+    }
+  </style>
+</MainLayout>
