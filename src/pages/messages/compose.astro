@@ -1,5 +1,6 @@
 ---
 import MainLayout from "../../layouts/MainLayout.astro";
+import Button from "../../components/Button.astro";
 import { db } from "../../lib/db.js";
 
 // Set to server-rendering
@@ -113,7 +114,7 @@ if (Astro.request.method === 'POST') {
 
       <form method="POST" class="message-form">
         <div class="form-group">
-          <label for="to">To:</label>
+          <label for="to" class="form-label">To:</label>
           <input
             type="text"
             id="to"
@@ -126,7 +127,7 @@ if (Astro.request.method === 'POST') {
         </div>
 
         <div class="form-group">
-          <label for="subject">Subject:</label>
+          <label for="subject" class="form-label">Subject:</label>
           <input
             type="text"
             id="subject"
@@ -139,7 +140,7 @@ if (Astro.request.method === 'POST') {
         </div>
 
         <div class="form-group">
-          <label for="content">Message:</label>
+          <label for="content" class="form-label">Message:</label>
           <textarea
             id="content"
             name="content"
@@ -151,132 +152,148 @@ if (Astro.request.method === 'POST') {
         </div>
 
         <div class="form-actions">
-          <button type="submit" class="btn btn-primary">Send Message</button>
-          <a href="/messages" class="btn">Cancel</a>
+          <Button type="submit" variant="primary">Send Message</Button>
+          <Button href="/messages" variant="outline">Cancel</Button>
         </div>
       </form>
     </div>
   </div>
+</MainLayout>
 
-  <style>
+<style>
+  .messages-container {
+    display: flex;
+    gap: 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .messages-sidebar {
+    flex: 0 0 200px;
+    background-color: var(--forum-category-bg);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .messages-sidebar h2 {
+    color: var(--secondary-color);
+    font-size: 1.2rem;
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .message-nav {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .message-nav li {
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    border-radius: var(--border-radius-sm);
+  }
+
+  .message-nav li.active {
+    background-color: var(--primary-color);
+  }
+
+  .message-nav li.active a {
+    color: white;
+  }
+
+  .message-nav a {
+    text-decoration: none;
+    color: var(--link-color);
+    display: block;
+  }
+
+  .messages-content {
+    flex: 1;
+  }
+
+  .messages-content h1 {
+    color: var(--secondary-color);
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .message-form {
+    background-color: var(--forum-topic-bg);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: var(--secondary-color);
+  }
+
+  .form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background-color: var(--container-bg);
+    color: var(--text-color);
+    transition: border-color 0.2s ease;
+  }
+
+  .form-control:focus {
+    outline: none;
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 2px rgba(201, 170, 113, 0.25);
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .alert {
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border-radius: var(--border-radius-sm);
+  }
+
+  .alert-error {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    border: 1px solid rgba(220, 53, 69, 0.25);
+  }
+
+  .alert-success {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+    border: 1px solid rgba(40, 167, 69, 0.25);
+  }
+
+  @media (max-width: 768px) {
     .messages-container {
-      display: flex;
-      gap: 2rem;
-      max-width: 1000px;
-      margin: 0 auto;
+      flex-direction: column;
     }
 
     .messages-sidebar {
-      flex: 0 0 200px;
-      background-color: var(--forum-category-bg);
-      padding: 1.5rem;
-      border-radius: var(--border-radius-md);
-      box-shadow: var(--shadow-sm);
-    }
-
-    .messages-sidebar h2 {
-      color: var(--secondary-color);
-      font-size: 1.2rem;
-      margin: 0 0 1rem;
-      padding-bottom: 0.5rem;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .message-nav {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    .message-nav li {
-      margin-bottom: 0.5rem;
-      padding: 0.5rem;
-      border-radius: var(--border-radius-sm);
-    }
-
-    .message-nav li.active {
-      background-color: var(--primary-color);
-    }
-
-    .message-nav li.active a {
-      color: white;
-    }
-
-    .message-nav a {
-      text-decoration: none;
-      color: var(--link-color);
-      display: block;
-    }
-
-    .messages-content {
-      flex: 1;
-    }
-
-    .messages-content h1 {
-      color: var(--secondary-color);
-      margin-bottom: 1.5rem;
-      padding-bottom: 0.5rem;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .message-form {
-      background-color: var(--forum-topic-bg);
-      padding: 1.5rem;
-      border-radius: var(--border-radius-md);
-      border: 1px solid var(--border-color);
-    }
-
-    .form-group {
-      margin-bottom: 1.5rem;
-    }
-
-    .form-group label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-weight: bold;
-      color: var(--secondary-color);
-    }
-
-    .form-control {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid var(--border-color);
-      border-radius: var(--border-radius-sm);
-      background-color: var(--container-bg);
-      color: var(--text-color);
+      flex: none;
     }
 
     .form-actions {
-      display: flex;
-      gap: 1rem;
+      flex-direction: column;
     }
 
-    .alert {
-      padding: 1rem;
-      margin-bottom: 1.5rem;
-      border-radius: var(--border-radius-sm);
+    .form-actions > :global(.btn) {
+      width: 100%;
     }
-
-    .alert-error {
-      background-color: rgba(220, 53, 69, 0.1);
-      color: #dc3545;
-      border: 1px solid rgba(220, 53, 69, 0.25);
-    }
-
-    .alert-success {
-      background-color: rgba(40, 167, 69, 0.1);
-      color: #28a745;
-      border: 1px solid rgba(40, 167, 69, 0.25);
-    }
-
-    @media (max-width: 768px) {
-      .messages-container {
-        flex-direction: column;
-      }
-
-      .messages-sidebar {
-        flex: none;
-      }
-    }
-  </style>
-</MainLayout>
+  }
+</style>

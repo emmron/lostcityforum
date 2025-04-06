@@ -1,4 +1,6 @@
+---
 import MainLayout from "../../layouts/MainLayout.astro";
+import Button from "../../components/Button.astro";
 import { db } from "../../lib/db.js";
 
 // Set to server-rendering
@@ -17,6 +19,22 @@ const user = await db.user.findById(userId);
 // Fetch user's inbox messages
 const inboxMessages = await db.message.getInbox(userId);
 
+// Check for success or error messages from redirects
+const errorParam = Astro.url.searchParams.get('error');
+const successParam = Astro.url.searchParams.get('success');
+
+let errorMessage = '';
+let successMessage = '';
+
+if (errorParam === 'message-not-found') {
+  errorMessage = 'The message you requested could not be found.';
+}
+
+if (successParam === 'message-deleted') {
+  successMessage = 'Message was successfully deleted.';
+}
+---
+
 <MainLayout title="Messages" activeNav="messages">
   <div class="breadcrumbs">
     <a href="/">Home</a> &raquo; Messages
@@ -34,6 +52,18 @@ const inboxMessages = await db.message.getInbox(userId);
 
     <div class="messages-content">
       <h1>Inbox</h1>
+
+      {errorMessage && (
+        <div class="alert alert-error">
+          {errorMessage}
+        </div>
+      )}
+
+      {successMessage && (
+        <div class="alert alert-success">
+          {successMessage}
+        </div>
+      )}
 
       {inboxMessages.length > 0 ? (
         <div class="messages-list">
@@ -75,7 +105,7 @@ const inboxMessages = await db.message.getInbox(userId);
       )}
 
       <div class="message-actions">
-        <a href="/messages/compose" class="btn btn-primary">Compose New Message</a>
+        <Button href="/messages/compose" variant="primary">Compose New Message</Button>
       </div>
     </div>
   </div>
@@ -164,7 +194,7 @@ const inboxMessages = await db.message.getInbox(userId);
     }
 
     .messages-list tr.unread {
-      background-color: rgba(var(--primary-color-rgb), 0.1);
+      background-color: rgba(138, 3, 3, 0.1);
       font-weight: bold;
     }
 
@@ -213,6 +243,24 @@ const inboxMessages = await db.message.getInbox(userId);
       justify-content: flex-end;
     }
 
+    .alert {
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      border-radius: var(--border-radius-sm);
+    }
+
+    .alert-error {
+      background-color: rgba(220, 53, 69, 0.1);
+      color: #dc3545;
+      border: 1px solid rgba(220, 53, 69, 0.25);
+    }
+
+    .alert-success {
+      background-color: rgba(40, 167, 69, 0.1);
+      color: #28a745;
+      border: 1px solid rgba(40, 167, 69, 0.25);
+    }
+
     @media (max-width: 768px) {
       .messages-container {
         flex-direction: column;
@@ -225,6 +273,10 @@ const inboxMessages = await db.message.getInbox(userId);
       .messages-list table {
         display: block;
         overflow-x: auto;
+      }
+
+      .message-actions {
+        justify-content: center;
       }
     }
   </style>

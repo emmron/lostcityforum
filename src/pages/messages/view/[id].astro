@@ -1,0 +1,385 @@
+---
+import MainLayout from "../../../layouts/MainLayout.astro";
+import Button from "../../../components/Button.astro";
+import UserAvatar from "../../../components/UserAvatar.astro";
+import { db } from "../../../lib/db.js";
+
+// Set to server-rendering
+export const prerender = false;
+
+// Check if user is logged in
+const isLoggedIn = Astro.cookies.has('user_id');
+if (!isLoggedIn) {
+  return Astro.redirect('/login?returnUrl=/messages');
+}
+
+// Get the user ID from the cookie
+const userId = Number(Astro.cookies.get('user_id').value);
+const user = await db.user.findById(userId);
+
+// Get the message ID from the URL
+const { id } = Astro.params;
+if (!id) {
+  return Astro.redirect('/messages');
+}
+
+// Get the message
+const message = await db.message.getById(id, userId);
+if (!message) {
+  return Astro.redirect('/messages?error=message-not-found');
+}
+
+// Determine if the current user is the receiver
+const isReceiver = message.receiverId === userId;
+
+// Initialize form data and error message
+let errorMessage = '';
+let successMessage = '';
+let replyContent = '';
+
+// Handle form submission (reply)
+if (Astro.request.method === 'POST') {
+  try {
+    const data = await Astro.request.formData();
+    const action = data.get('action')?.toString();
+
+    if (action === 'reply') {
+      const content = data.get('content')?.toString().trim();
+      replyContent = content || '';
+
+      // Validate input
+      if (!content || content.length < 5) {
+        errorMessage = 'Reply message must be at least 5 characters long';
+      } else {
+        // Create a new message as a reply
+        const subject = `Re: ${message.subject}`;
+        const recipientId = isReceiver ? message.senderId : message.receiverId;
+
+        await db.message.create({
+          subject,
+          content,
+          senderId: userId,
+          receiverId: recipientId
+        });
+
+        // Show success message
+        successMessage = 'Reply sent successfully!';
+        replyContent = '';
+      }
+    } else if (action === 'delete') {
+      // Logic for deleting the message would go here
+      // This would require adding a delete method to the db.message object
+
+      return Astro.redirect('/messages?success=message-deleted');
+    }
+  } catch (error) {
+    console.error('Error processing message action:', error);
+    errorMessage = 'An error occurred while processing your request. Please try again.';
+  }
+}
+
+// Format date for display
+const messageDate = new Date(message.createdAt).toLocaleString();
+---
+
+<MainLayout title="View Message" activeNav="messages">
+  <div class="breadcrumbs">
+    <a href="/">Home</a> &raquo; <a href="/messages">Messages</a> &raquo; View Message
+  </div>
+
+  <div class="messages-container">
+    <div class="messages-sidebar">
+      <h2>Navigation</h2>
+      <ul class="message-nav">
+        <li class={isReceiver ? "active" : ""}><a href="/messages">Inbox</a></li>
+        <li class={!isReceiver ? "active" : ""}><a href="/messages/sent">Sent Messages</a></li>
+        <li><a href="/messages/compose">Compose New Message</a></li>
+      </ul>
+    </div>
+
+    <div class="messages-content">
+      <div class="message-header">
+        <h1>{message.subject}</h1>
+        <div class="message-meta">
+          {isReceiver ? (
+            <span>From: <a href={`/members/${message.sender.username}`} class="sender-link">{message.sender.username}</a></span>
+          ) : (
+            <span>To: <a href={`/members/${message.receiver.username}`} class="sender-link">{message.receiver.username}</a></span>
+          )}
+          <span class="message-date">{messageDate}</span>
+        </div>
+      </div>
+
+      {errorMessage && (
+        <div class="alert alert-error">
+          {errorMessage}
+        </div>
+      )}
+
+      {successMessage && (
+        <div class="alert alert-success">
+          {successMessage}
+        </div>
+      )}
+
+      <div class="message-body">
+        <div class="message-user">
+          <UserAvatar
+            username={isReceiver ? message.sender.username : message.receiver.username}
+            size="md"
+          />
+          <div class="username">
+            {isReceiver ? message.sender.username : message.receiver.username}
+          </div>
+        </div>
+        <div class="message-content">
+          <div class="message-text">
+            {message.content}
+          </div>
+          <div class="message-actions">
+            <form method="POST" class="delete-form">
+              <input type="hidden" name="action" value="delete" />
+              <Button type="submit" variant="danger" size="sm">Delete</Button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="reply-container">
+        <h2>Reply</h2>
+        <form method="POST" class="reply-form">
+          <input type="hidden" name="action" value="reply" />
+
+          <div class="form-group">
+            <textarea
+              name="content"
+              class="form-control"
+              rows="6"
+              placeholder="Write your reply here..."
+              required
+            >{replyContent}</textarea>
+          </div>
+
+          <div class="form-actions">
+            <Button type="submit" variant="primary">Send Reply</Button>
+            <a href={isReceiver ? "/messages" : "/messages/sent"} class="btn btn-outline">Back to {isReceiver ? "Inbox" : "Sent Messages"}</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</MainLayout>
+
+<style>
+  .messages-container {
+    display: flex;
+    gap: 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .messages-sidebar {
+    flex: 0 0 200px;
+    background-color: var(--forum-category-bg);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .messages-sidebar h2 {
+    color: var(--secondary-color);
+    font-size: 1.2rem;
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .message-nav {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .message-nav li {
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    border-radius: var(--border-radius-sm);
+  }
+
+  .message-nav li.active {
+    background-color: var(--primary-color);
+  }
+
+  .message-nav li.active a {
+    color: white;
+  }
+
+  .message-nav a {
+    text-decoration: none;
+    color: var(--link-color);
+    display: block;
+  }
+
+  .messages-content {
+    flex: 1;
+  }
+
+  .message-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .message-header h1 {
+    color: var(--secondary-color);
+    margin: 0 0 0.5rem 0;
+    font-size: 1.5rem;
+  }
+
+  .message-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  .sender-link {
+    color: var(--link-color);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .sender-link:hover {
+    text-decoration: underline;
+  }
+
+  .message-body {
+    display: flex;
+    background-color: var(--forum-topic-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    margin-bottom: 2rem;
+    overflow: hidden;
+  }
+
+  .message-user {
+    padding: 1.5rem;
+    background-color: var(--forum-category-bg);
+    border-right: 1px solid var(--border-color);
+    text-align: center;
+    width: 120px;
+    flex-shrink: 0;
+  }
+
+  .message-user .username {
+    margin-top: 0.75rem;
+    font-weight: 500;
+    color: var(--link-color);
+  }
+
+  .message-content {
+    padding: 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .message-text {
+    flex: 1;
+    line-height: 1.6;
+    white-space: pre-wrap;
+  }
+
+  .message-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .reply-container {
+    background-color: var(--forum-topic-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: 1.5rem;
+  }
+
+  .reply-container h2 {
+    color: var(--secondary-color);
+    font-size: 1.2rem;
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background-color: var(--container-bg);
+    color: var(--text-color);
+    resize: vertical;
+  }
+
+  .form-actions {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .alert {
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border-radius: var(--border-radius-sm);
+  }
+
+  .alert-error {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    border: 1px solid rgba(220, 53, 69, 0.25);
+  }
+
+  .alert-success {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+    border: 1px solid rgba(40, 167, 69, 0.25);
+  }
+
+  .delete-form {
+    display: inline;
+  }
+
+  @media (max-width: 768px) {
+    .messages-container {
+      flex-direction: column;
+    }
+
+    .messages-sidebar {
+      flex: none;
+    }
+
+    .message-body {
+      flex-direction: column;
+    }
+
+    .message-user {
+      width: 100%;
+      border-right: none;
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem;
+    }
+
+    .form-actions {
+      flex-direction: column;
+    }
+
+    .form-actions .btn {
+      width: 100%;
+    }
+  }
+</style>

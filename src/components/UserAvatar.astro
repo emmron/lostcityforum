@@ -1,0 +1,125 @@
+---
+interface Props {
+  username: string;
+  avatar?: string;
+  size?: 'sm' | 'md' | 'lg';
+  status?: 'online' | 'offline' | 'away';
+}
+
+const {
+  username,
+  avatar = null,
+  size = 'md',
+  status = null
+} = Astro.props;
+
+// Get initials from username
+const initials = username
+  .split(' ')
+  .map(name => name.charAt(0))
+  .join('')
+  .substring(0, 2)
+  .toUpperCase();
+
+// Set size based on prop
+const sizeMap = {
+  sm: '32px',
+  md: '48px',
+  lg: '64px'
+};
+
+const avatarSize = sizeMap[size];
+---
+
+<div class={`user-avatar avatar-${size}`} title={username}>
+  {avatar ? (
+    <img src={avatar} alt={`${username}'s avatar`} width={avatarSize} height={avatarSize} />
+  ) : (
+    <div class="avatar-initials">
+      <span>{initials}</span>
+    </div>
+  )}
+
+  {status && <div class={`status-indicator status-${status}`}></div>}
+</div>
+
+<style>
+  .user-avatar {
+    position: relative;
+    border-radius: 50%;
+    overflow: hidden;
+    background-color: var(--primary-color-light);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid var(--primary-color);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .avatar-sm {
+    width: 32px;
+    height: 32px;
+    border-width: 2px;
+  }
+
+  .avatar-md {
+    width: 48px;
+    height: 48px;
+  }
+
+  .avatar-lg {
+    width: 64px;
+    height: 64px;
+    border-width: 4px;
+  }
+
+  .user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .avatar-initials {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: var(--secondary-color);
+    font-weight: bold;
+  }
+
+  .avatar-sm .avatar-initials span {
+    font-size: 14px;
+  }
+
+  .avatar-md .avatar-initials span {
+    font-size: 18px;
+  }
+
+  .avatar-lg .avatar-initials span {
+    font-size: 24px;
+  }
+
+  .status-indicator {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 30%;
+    height: 30%;
+    border-radius: 50%;
+    border: 2px solid var(--container-bg);
+  }
+
+  .status-online {
+    background-color: var(--success-color);
+  }
+
+  .status-offline {
+    background-color: var(--border-color);
+  }
+
+  .status-away {
+    background-color: var(--warning-color);
+  }
+</style>

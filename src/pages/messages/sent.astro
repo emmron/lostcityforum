@@ -1,0 +1,233 @@
+---
+import MainLayout from "../../layouts/MainLayout.astro";
+import Button from "../../components/Button.astro";
+import { db } from "../../lib/db.js";
+
+// Set to server-rendering
+export const prerender = false;
+
+// Check if user is logged in
+const isLoggedIn = Astro.cookies.has('user_id');
+if (!isLoggedIn) {
+  return Astro.redirect('/login?returnUrl=/messages/sent');
+}
+
+// Get the user ID from the cookie
+const userId = Number(Astro.cookies.get('user_id').value);
+const user = await db.user.findById(userId);
+
+// Fetch user's sent messages
+const sentMessages = await db.message.getSent(userId);
+---
+
+<MainLayout title="Sent Messages" activeNav="messages">
+  <div class="breadcrumbs">
+    <a href="/">Home</a> &raquo; <a href="/messages">Messages</a> &raquo; Sent Messages
+  </div>
+
+  <div class="messages-container">
+    <div class="messages-sidebar">
+      <h2>Navigation</h2>
+      <ul class="message-nav">
+        <li><a href="/messages">Inbox</a></li>
+        <li class="active"><a href="/messages/sent">Sent Messages</a></li>
+        <li><a href="/messages/compose">Compose New Message</a></li>
+      </ul>
+    </div>
+
+    <div class="messages-content">
+      <h1>Sent Messages</h1>
+
+      {sentMessages.length > 0 ? (
+        <div class="messages-list">
+          <table>
+            <thead>
+              <tr>
+                <th>Subject</th>
+                <th>To</th>
+                <th>Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sentMessages.map(message => (
+                <tr>
+                  <td class="message-subject">
+                    <a href={`/messages/view/${message.id}`}>{message.subject}</a>
+                  </td>
+                  <td class="message-recipient">
+                    <a href={`/members/${message.receiver.username}`}>{message.receiver.username}</a>
+                  </td>
+                  <td class="message-date">
+                    {new Date(message.createdAt).toLocaleString()}
+                  </td>
+                  <td class="message-status">
+                    <span class={message.isRead ? 'read' : 'unread'}>
+                      {message.isRead ? 'Read' : 'Unread'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div class="no-messages">
+          <p>You haven't sent any messages yet.</p>
+        </div>
+      )}
+
+      <div class="message-actions">
+        <Button href="/messages/compose" variant="primary">Compose New Message</Button>
+      </div>
+    </div>
+  </div>
+</MainLayout>
+
+<style>
+  .messages-container {
+    display: flex;
+    gap: 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .messages-sidebar {
+    flex: 0 0 200px;
+    background-color: var(--forum-category-bg);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .messages-sidebar h2 {
+    color: var(--secondary-color);
+    font-size: 1.2rem;
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .message-nav {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .message-nav li {
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
+    border-radius: var(--border-radius-sm);
+  }
+
+  .message-nav li.active {
+    background-color: var(--primary-color);
+  }
+
+  .message-nav li.active a {
+    color: white;
+  }
+
+  .message-nav a {
+    text-decoration: none;
+    color: var(--link-color);
+    display: block;
+  }
+
+  .messages-content {
+    flex: 1;
+  }
+
+  .messages-content h1 {
+    color: var(--secondary-color);
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .messages-list table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .messages-list th,
+  .messages-list td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .messages-list th {
+    background-color: var(--forum-category-bg);
+    color: var(--secondary-color);
+    font-weight: bold;
+  }
+
+  .messages-list tr:hover {
+    background-color: var(--forum-topic-alt);
+  }
+
+  .message-status {
+    width: 80px;
+    text-align: center;
+  }
+
+  .message-status .read {
+    color: var(--text-muted);
+  }
+
+  .message-status .unread {
+    color: var(--primary-color);
+    font-weight: bold;
+  }
+
+  .message-subject a,
+  .message-recipient a {
+    color: var(--link-color);
+    text-decoration: none;
+  }
+
+  .message-subject a:hover,
+  .message-recipient a:hover {
+    text-decoration: underline;
+  }
+
+  .message-date {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .no-messages {
+    background-color: var(--forum-topic-alt);
+    padding: 2rem;
+    text-align: center;
+    border-radius: var(--border-radius-md);
+    color: var(--text-muted);
+  }
+
+  .message-actions {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  @media (max-width: 768px) {
+    .messages-container {
+      flex-direction: column;
+    }
+
+    .messages-sidebar {
+      flex: none;
+    }
+
+    .messages-list table {
+      display: block;
+      overflow-x: auto;
+    }
+
+    .message-actions {
+      justify-content: center;
+    }
+  }
+</style>
