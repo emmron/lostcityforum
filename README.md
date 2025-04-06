@@ -12,6 +12,7 @@ A nostalgic forum for the 2004-era RuneScape community, focused on the Lost City
 - Topic and post creation
 - Search functionality
 - Mobile-responsive design
+- PostgreSQL database for production (SQLite for development)
 
 ## 🚀 Getting Started
 
@@ -19,6 +20,7 @@ A nostalgic forum for the 2004-era RuneScape community, focused on the Lost City
 
 - Node.js (v18 or later)
 - npm or yarn
+- PostgreSQL (for production) - SQLite is used for development by default
 
 ### Installation
 
@@ -33,12 +35,24 @@ cd lostcityforum
 npm install
 ```
 
-3. Run the development server
+3. Set up the database
+```sh
+# For development with SQLite (default)
+npm run prisma:migrate
+npm run prisma:seed
+
+# For PostgreSQL (recommended for production)
+# Update .env with your PostgreSQL connection string
+# Then run:
+node prisma-deploy.js
+```
+
+4. Run the development server
 ```sh
 npm run dev
 ```
 
-4. Open your browser and navigate to `http://localhost:4321`
+5. Open your browser and navigate to `http://localhost:4321`
 
 ## 🧞 Commands
 
@@ -51,7 +65,14 @@ All commands are run from the root of the project, from a terminal:
 | `npm run build`           | Build your production site to `./dist/`          |
 | `npm run preview`         | Preview your build locally, before deploying     |
 | `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+| `npm run prisma:migrate`  | Run database migrations                          |
+| `npm run prisma:seed`     | Seed the database with initial data              |
+| `npm run prisma:studio`   | Open Prisma Studio to manage database            |
+| `npm run prisma:reset`    | Reset the database (caution: deletes all data)   |
+
+## 📝 Deployment
+
+For deployment to Vercel with PostgreSQL, see the [VERCEL-DEPLOY.md](VERCEL-DEPLOY.md) guide.
 
 ## 📁 Project Structure
 

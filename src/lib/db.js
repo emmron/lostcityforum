@@ -1,27 +1,35 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
-// Initialize Prisma client with error handling and retries
-let prisma;
+// PrismaClient is attached to the `global` object in development to prevent
+// exhausting your database connection limit.
+// Learn more: https://pris.ly/d/help/next-js-best-practices
 
-try {
-  prisma = new PrismaClient({
+// Add prisma to the NodeJS global type
+const globalForPrisma = global;
+
+// Initialize Prisma client with connection pooling for Vercel
+const prismaClientSingleton = () => {
+  return new PrismaClient({
     log: ['error', 'warn'],
     errorFormat: 'pretty',
   });
+};
 
-  // Test the connection
-  prisma.$connect()
-    .then(() => {
-      console.log('Connected to database successfully');
-    })
-    .catch((error) => {
-      console.error('Failed to connect to database:', error);
-    });
-} catch (error) {
-  console.error('Failed to initialize Prisma client:', error);
-  throw error;
-}
+// Create global prisma instance or reuse if already exists
+const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
+
+// If not in production, assign to global object to reuse connections
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
+// Test the connection on initialization
+prisma.$connect()
+  .then(() => {
+    console.log('Connected to database successfully');
+  })
+  .catch((error) => {
+    console.error('Failed to connect to database:', error);
+  });
 
 // Handle potential connection issues
 process.on('unhandledRejection', (error) => {
