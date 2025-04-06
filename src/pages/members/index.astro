@@ -1,20 +1,9 @@
 ---
 import MainLayout from "../../layouts/MainLayout.astro";
-import { getCollection } from "astro:content";
+import { db } from "../../lib/db.js";
 
-// Get actual member data from the database or content collection
-const allMembers = await getCollection("members");
-
-// Process member data
-let members = allMembers.map(member => ({
-  id: member.id,
-  username: member.data.username,
-  avatar: member.data.avatar || "/images/avatars/default.png",
-  joinDate: new Date(member.data.joinDate).toISOString().split('T')[0],
-  posts: member.data.posts || 0,
-  role: member.data.role || "Member",
-  lastActive: member.data.lastActive || "Never"
-}));
+// Fetch users
+const users = await db.user.findMany();
 
 // Get sort parameter from URL
 const url = Astro.url;
@@ -23,33 +12,33 @@ const searchQuery = url.searchParams.get('search') || '';
 
 // Filter members if search query exists
 if (searchQuery) {
-  members = members.filter(member =>
-    member.username.toLowerCase().includes(searchQuery.toLowerCase())
+  users = users.filter(user =>
+    user.username.toLowerCase().includes(searchQuery.toLowerCase())
   );
 }
 
 // Sort members based on parameter
 switch(sortParam) {
   case 'username':
-    members.sort((a, b) => a.username.localeCompare(b.username));
+    users.sort((a, b) => a.username.localeCompare(b.username));
     break;
   case 'joinDate':
-    members.sort((a, b) => new Date(b.joinDate) - new Date(a.joinDate));
+    users.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     break;
   case 'lastActive':
-    members.sort((a, b) => new Date(b.lastActive) - new Date(a.lastActive));
+    users.sort((a, b) => new Date(b.lastActive) - new Date(a.lastActive));
     break;
   case 'posts':
   default:
-    members.sort((a, b) => b.posts - a.posts);
+    users.sort((a, b) => b.postsCount - a.postsCount);
     break;
 }
 
 // Pagination
 const membersPerPage = 10;
 const currentPage = parseInt(url.searchParams.get('page') || '1');
-const totalPages = Math.ceil(members.length / membersPerPage);
-const paginatedMembers = members.slice(
+const totalPages = Math.ceil(users.length / membersPerPage);
+const paginatedUsers = users.slice(
   (currentPage - 1) * membersPerPage,
   currentPage * membersPerPage
 );
@@ -62,63 +51,46 @@ const getPageUrl = (page) => {
 };
 ---
 
-<MainLayout title="Members">
+<MainLayout title="Members" activeNav="members">
   <div class="breadcrumbs">
     <a href="/">Home</a> &raquo; Members
   </div>
 
-  <div class="page-header">
+  <div class="members-page">
     <h1>Forum Members</h1>
-    <div class="sort-controls">
-      <span>Sort by:</span>
-      <a href={`?sort=posts${searchQuery ? `&search=${searchQuery}` : ''}`} class={sortParam === 'posts' ? 'active' : ''}>Posts</a>
-      <a href={`?sort=username${searchQuery ? `&search=${searchQuery}` : ''}`} class={sortParam === 'username' ? 'active' : ''}>Username</a>
-      <a href={`?sort=joinDate${searchQuery ? `&search=${searchQuery}` : ''}`} class={sortParam === 'joinDate' ? 'active' : ''}>Join Date</a>
-      <a href={`?sort=lastActive${searchQuery ? `&search=${searchQuery}` : ''}`} class={sortParam === 'lastActive' ? 'active' : ''}>Last Active</a>
+
+    <div class="member-search">
+      <form action="/members/search" method="GET">
+        <input
+          type="text"
+          name="username"
+          placeholder="Search members..."
+          class="form-control"
+        />
+        <button type="submit" class="btn btn-primary">Search</button>
+      </form>
+    </div>
+
+    <div class="members-list">
+      <div class="members-grid">
+        {paginatedUsers.map(user => (
+          <div class="member-card">
+            <div class="member-avatar">
+              <img
+                src={user.avatarUrl || "/images/avatars/default.png"}
+                alt={user.username}
+              />
+            </div>
+            <div class="member-info">
+              <h3 class="member-name">{user.username}</h3>
+              <p class="member-posts">Posts: {user.postsCount}</p>
+              <p class="member-joined">Joined: {new Date(user.createdAt).toLocaleDateString()}</p>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   </div>
-
-  <form class="member-search" method="get">
-    <input
-      type="text"
-      name="search"
-      placeholder="Search members..."
-      class="form-control"
-      value={searchQuery}
-    >
-    <input type="hidden" name="sort" value={sortParam}>
-    <button type="submit" class="btn">Search</button>
-    {searchQuery && (
-      <a href={`?sort=${sortParam}`} class="btn btn-secondary">Clear</a>
-    )}
-  </form>
-
-  {members.length === 0 ? (
-    <div class="no-results">
-      <p>No members found matching your search criteria.</p>
-    </div>
-  ) : (
-    <div class="members-grid">
-      {paginatedMembers.map((member) => (
-        <div class="member-card">
-          <div class="member-avatar">
-            <img src={member.avatar} alt={`${member.username}'s avatar`} />
-          </div>
-          <div class="member-info">
-            <div class="member-name">
-              <a href={`/members/${member.id}`}>{member.username}</a>
-              {member.role !== "Member" && <span class={`role-badge ${member.role.toLowerCase()}`}>{member.role}</span>}
-            </div>
-            <div class="member-stats">
-              <div><span>Posts:</span> {member.posts}</div>
-              <div><span>Joined:</span> {member.joinDate}</div>
-              <div><span>Last Active:</span> {member.lastActive}</div>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  )}
 
   {totalPages > 1 && (
     <div class="paginator">
@@ -140,148 +112,96 @@ const getPageUrl = (page) => {
       )}
     </div>
   )}
+</MainLayout>
 
-  <style>
-    .page-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
+<style>
+  .members-page {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
 
-    .page-header h1 {
-      color: var(--secondary-color);
-      margin-bottom: 10px;
-    }
+  h1 {
+    margin-bottom: 1.5rem;
+    color: var(--secondary-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+  }
 
-    .sort-controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 14px;
-    }
+  .member-search {
+    margin-bottom: 2rem;
+    background-color: var(--forum-category-bg);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+  }
 
-    .sort-controls a {
-      color: var(--link-color);
-      text-decoration: none;
-    }
+  .member-search form {
+    display: flex;
+    gap: 1rem;
+  }
 
-    .sort-controls a:hover {
-      text-decoration: underline;
-    }
+  .member-search .form-control {
+    flex: 1;
+  }
 
-    .sort-controls a.active {
-      font-weight: bold;
-      color: var(--link-hover);
-    }
+  .members-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
 
-    .member-search {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
+  .member-card {
+    display: flex;
+    align-items: center;
+    background-color: var(--forum-category-bg);
+    padding: 1rem;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+  }
 
-    .member-search input {
-      flex: 1;
-    }
+  .member-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-md);
+  }
 
-    .no-results {
-      background-color: var(--forum-topic-bg);
-      padding: 20px;
-      text-align: center;
-      border: 1px solid var(--border-color);
-      margin-bottom: 20px;
+  .member-avatar {
+    margin-right: 1rem;
+  }
+
+  .member-avatar img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid var(--primary-color);
+    background-color: var(--container-bg);
+    padding: 2px;
+  }
+
+  .member-info {
+    flex: 1;
+  }
+
+  .member-name {
+    color: var(--link-color);
+    margin: 0 0 0.5rem;
+    font-size: 1.1rem;
+  }
+
+  .member-posts, .member-joined {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-color);
+    opacity: 0.9;
+  }
+
+  @media (max-width: 768px) {
+    .member-search form {
+      flex-direction: column;
     }
 
     .members-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 20px;
-      margin-bottom: 20px;
+      grid-template-columns: 1fr;
     }
-
-    .member-card {
-      display: flex;
-      gap: 15px;
-      padding: 15px;
-      background-color: var(--forum-topic-bg);
-      border: 1px solid var(--border-color);
-    }
-
-    .member-avatar img {
-      width: 80px;
-      height: 80px;
-      border: 1px solid var(--border-color);
-    }
-
-    .member-info {
-      flex: 1;
-    }
-
-    .member-name {
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .member-name a {
-      font-size: 16px;
-      font-weight: bold;
-      color: var(--link-color);
-      text-decoration: none;
-    }
-
-    .member-name a:hover {
-      text-decoration: underline;
-    }
-
-    .role-badge {
-      font-size: 11px;
-      padding: 2px 6px;
-      border-radius: 3px;
-      text-transform: uppercase;
-    }
-
-    .role-badge.administrator {
-      background-color: var(--primary-color);
-      color: white;
-    }
-
-    .role-badge.moderator {
-      background-color: #006600;
-      color: white;
-    }
-
-    .member-stats {
-      font-size: 13px;
-      display: grid;
-      gap: 5px;
-    }
-
-    .member-stats span {
-      font-weight: bold;
-      color: #999;
-    }
-
-    .btn-secondary {
-      background-color: #555;
-    }
-
-    .btn-secondary:hover {
-      background-color: #666;
-    }
-
-    @media (max-width: 768px) {
-      .members-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .page-header {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-    }
-  </style>
-</MainLayout>
+  }
+</style>

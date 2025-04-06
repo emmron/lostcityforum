@@ -1,6 +1,7 @@
 /* Global Styles for 2004scape Lost City Forum */
 :root {
   --primary-color: #8a0303;
+  --primary-color-light: #a03030;
   --secondary-color: #c9aa71;
   --background-color: #000000;
   --container-bg: #111111;
@@ -23,6 +24,15 @@
   --error-color: #dc3545;
   --warning-color: #ffc107;
   --info-color: #17a2b8;
+
+  /* New variables for enhanced UI */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.3);
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --transition-speed: 0.2s;
 }
 
 * {
@@ -370,19 +380,37 @@ main {
 
 /* Forum Categories */
 .forum-categories {
-  margin-bottom: 20px;
+  margin-bottom: 30px;
 }
 
 .category {
-  margin-bottom: 20px;
+  margin-bottom: 25px;
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  transition: transform var(--transition-speed) ease;
+}
+
+.category:hover {
+  transform: translateY(-5px);
 }
 
 .category-header {
   background-color: var(--primary-color);
-  padding: 10px 15px;
+  padding: 12px 20px;
   border: 1px solid var(--border-color);
   font-weight: bold;
   color: var(--secondary-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.category-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .forum-list {
@@ -392,10 +420,15 @@ main {
 .forum-item {
   display: grid;
   grid-template-columns: 3fr 1fr 1fr;
-  padding: 15px;
+  padding: 15px 20px;
   border: 1px solid var(--border-color);
   border-top: none;
   background-color: var(--forum-category-bg);
+  transition: background-color var(--transition-speed) ease;
+}
+
+.forum-item:hover {
+  background-color: rgba(201, 170, 113, 0.1);
 }
 
 .forum-item:nth-child(even) {
@@ -486,36 +519,83 @@ main {
   margin-bottom: 20px;
   border: 1px solid var(--border-color);
   background-color: var(--post-bg);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-speed) ease;
+}
+
+.post:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .post-header {
   background-color: var(--post-header);
-  padding: 10px 15px;
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
-  border-bottom: 1px solid var(--border-color);
+  align-items: center;
+}
+
+.post-header .post-date {
+  font-size: 0.9rem;
+  color: var(--text-color);
+  opacity: 0.8;
 }
 
 .post-content {
-  display: grid;
-  grid-template-columns: 200px 1fr;
+  padding: 20px;
+  display: flex;
 }
 
 .post-user {
-  padding: 15px;
+  width: 150px;
+  padding-right: 20px;
   border-right: 1px solid var(--border-color);
   text-align: center;
 }
 
 .post-user img {
-  max-width: 100px;
-  height: auto;
-  border: 1px solid var(--border-color);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin-bottom: 10px;
+  border: 3px solid var(--primary-color);
+  padding: 3px;
+  background-color: var(--container-bg);
+}
+
+.post-user .username {
+  font-weight: bold;
+  color: var(--link-color);
+  margin-bottom: 5px;
+  display: block;
+}
+
+.post-user .user-title {
+  font-size: 0.8rem;
+  color: var(--secondary-color);
+  margin-bottom: 5px;
+}
+
+.post-user .user-stats {
+  font-size: 0.8rem;
+  color: var(--text-color);
+  opacity: 0.8;
 }
 
 .post-body {
-  padding: 15px;
-  word-break: break-word;
+  flex: 1;
+  padding-left: 20px;
+  line-height: 1.6;
+}
+
+.post-actions {
+  margin-top: 15px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
 }
 
 /* Forms */
