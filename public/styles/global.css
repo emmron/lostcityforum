@@ -18,6 +18,11 @@
   --forum-topic-alt: #1a1a1a;
   --post-bg: #222222;
   --post-header: #1a1a1a;
+  --accent-color: #c9aa71;
+  --success-color: #28a745;
+  --error-color: #dc3545;
+  --warning-color: #ffc107;
+  --info-color: #17a2b8;
 }
 
 * {
@@ -37,12 +42,14 @@ body {
 }
 
 .container {
-  max-width: 1000px;
+  max-width: 1100px;
   margin: 20px auto;
   padding: 0;
   background-color: var(--container-bg);
   border: 1px solid var(--border-color);
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 /* Header */
@@ -63,10 +70,23 @@ body {
   font-size: 24px;
   font-weight: bold;
   text-shadow: 2px 2px 0 #000;
+  letter-spacing: 1px;
 }
 
 .logo {
   text-decoration: none;
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s ease;
+}
+
+.logo:hover {
+  transform: scale(1.02);
+}
+
+.logo img {
+  height: 40px;
+  margin-right: 10px;
 }
 
 .user-controls {
@@ -78,6 +98,7 @@ body {
 .main-nav {
   background-color: var(--primary-color);
   padding: 0 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .main-nav ul {
@@ -93,64 +114,259 @@ body {
   display: block;
   color: var(--text-color);
   text-decoration: none;
-  padding: 10px 15px;
+  padding: 12px 20px;
   font-weight: bold;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  border-bottom: 3px solid transparent;
 }
 
-.main-nav a:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: var(--link-hover);
+.main-nav a:hover,
+.main-nav a.active {
+  color: var(--secondary-color);
+  background-color: rgba(0, 0, 0, 0.2);
+  border-bottom: 3px solid var(--secondary-color);
 }
 
-/* Main Content */
+/* Main Content Area */
 main {
   padding: 20px;
+  min-height: 600px;
 }
 
-/* Footer */
-.main-footer {
-  background-color: var(--footer-bg);
-  padding: 15px 20px;
-  text-align: center;
-  border-top: 1px solid var(--border-color);
-  font-size: 12px;
+/* Breadcrumbs */
+.breadcrumbs {
+  margin-bottom: 20px;
+  font-size: 14px;
+  padding: 8px 12px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
 }
 
-.main-footer a {
+.breadcrumbs a {
   color: var(--link-color);
   text-decoration: none;
 }
 
-.main-footer a:hover {
+.breadcrumbs a:hover {
   text-decoration: underline;
-  color: var(--link-hover);
 }
 
 /* Buttons */
 .btn {
   display: inline-block;
-  padding: 5px 15px;
-  background-color: var(--input-bg);
+  padding: 10px 15px;
+  background-color: var(--forum-topic-bg);
   color: var(--text-color);
   border: 1px solid var(--border-color);
+  border-radius: 4px;
   text-decoration: none;
   font-size: 14px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
 .btn:hover {
-  background-color: var(--border-color);
+  background-color: var(--forum-topic-alt);
+  transform: translateY(-2px);
 }
 
 .btn-primary {
   background-color: var(--button-bg);
   color: white;
+  border: 1px solid var(--button-bg);
 }
 
 .btn-primary:hover {
   background-color: var(--button-hover);
 }
+
+.btn-success {
+  background-color: var(--success-color);
+  color: white;
+  border: 1px solid var(--success-color);
+}
+
+.btn-success:hover {
+  background-color: #218838;
+}
+
+.btn-danger {
+  background-color: var(--error-color);
+  color: white;
+  border: 1px solid var(--error-color);
+}
+
+.btn-danger:hover {
+  background-color: #c82333;
+}
+
+/* Footer */
+.main-footer {
+  background-color: var(--footer-bg);
+  padding: 20px;
+  text-align: center;
+  border-top: 1px solid var(--border-color);
+  font-size: 14px;
+  color: #888;
+}
+
+.main-footer a {
+  color: var(--link-color);
+  text-decoration: none;
+  margin: 0 8px;
+}
+
+.main-footer a:hover {
+  text-decoration: underline;
+}
+
+/* Form Styles */
+.form-control {
+  width: 100%;
+  padding: 12px;
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  border-radius: 4px;
+  font-size: 16px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 0 3px rgba(201, 170, 113, 0.25);
+}
+
+/* Alert Boxes */
+.alert {
+  padding: 15px;
+  margin-bottom: 20px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.alert-error {
+  color: #721c24;
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+}
+
+.alert-success {
+  color: #155724;
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+}
+
+.alert-warning {
+  color: #856404;
+  background-color: #fff3cd;
+  border-color: #ffeeba;
+}
+
+.alert-info {
+  color: #0c5460;
+  background-color: #d1ecf1;
+  border-color: #bee5eb;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .container {
+    margin: 0;
+    width: 100%;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .main-nav ul {
+    flex-wrap: wrap;
+  }
+
+  .main-nav li {
+    flex: 1 0 auto;
+    text-align: center;
+  }
+
+  .main-nav a {
+    padding: 12px 10px;
+    font-size: 14px;
+  }
+
+  .header-top {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .user-controls {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .main-footer {
+    padding: 15px 10px;
+  }
+
+  .main-footer a {
+    display: inline-block;
+    margin: 5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-nav a {
+    padding: 10px 5px;
+    font-size: 12px;
+  }
+
+  main {
+    padding: 15px 10px;
+  }
+
+  .btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
+
+/* Animation Keyframes */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Utility Classes */
+.fade-in {
+  animation: fadeIn 0.5s ease;
+}
+
+.slide-in {
+  animation: slideInUp 0.3s ease;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.mt-1 { margin-top: 0.5rem; }
+.mt-2 { margin-top: 1rem; }
+.mt-3 { margin-top: 1.5rem; }
+.mb-1 { margin-bottom: 0.5rem; }
+.mb-2 { margin-bottom: 1rem; }
+.mb-3 { margin-bottom: 1.5rem; }
 
 /* Forum Categories */
 .forum-categories {
@@ -313,14 +529,6 @@ main {
   font-weight: bold;
 }
 
-.form-control {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--border-color);
-  background-color: var(--input-bg);
-  color: var(--text-color);
-}
-
 textarea.form-control {
   min-height: 150px;
   resize: vertical;
@@ -341,21 +549,4 @@ textarea.form-control {
     border-right: none;
     border-bottom: 1px solid var(--border-color);
   }
-}
-
-/* Breadcrumbs */
-.breadcrumbs {
-  margin-bottom: 20px;
-  padding: 8px 15px;
-  background-color: var(--forum-category-bg);
-  border: 1px solid var(--border-color);
-}
-
-.breadcrumbs a {
-  color: var(--link-color);
-  text-decoration: none;
-}
-
-.breadcrumbs a:hover {
-  text-decoration: underline;
 }

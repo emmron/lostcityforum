@@ -25,7 +25,7 @@ categories.forEach(category => {
     <a href="/">Home</a> &raquo; Forums
   </div>
 
-  <h1>Forums</h1>
+  <h1 class="page-title">Forums</h1>
 
   <!-- Forums Statistics Summary -->
   <section class="forum-stats-summary">
@@ -52,16 +52,19 @@ categories.forEach(category => {
           <ul class="forum-list">
             {category.forums.map((forum) => (
               <li class="forum-item">
+                <div class="forum-icon">
+                  <i class="forum-icon-inner"></i>
+                </div>
                 <div class="forum-details">
                   <h3><a href={`/forums/${forum.id}`}>{forum.title}</a></h3>
                   <p>{forum.description}</p>
                 </div>
                 <div class="forum-stats">
-                  <div>Topics: {forum.topicsCount || 0}</div>
-                  <div>Posts: {forum.postsCount || 0}</div>
+                  <div><span class="stat-label">Topics:</span> {forum.topicsCount || 0}</div>
+                  <div><span class="stat-label">Posts:</span> {forum.postsCount || 0}</div>
                 </div>
                 <div class="forum-last-post">
-                  <div>No posts yet</div>
+                  <div class="no-post-yet">No posts yet</div>
                 </div>
               </li>
             ))}
@@ -72,15 +75,19 @@ categories.forEach(category => {
   </section>
 
   <style>
-    h1 {
+    .page-title {
       color: var(--secondary-color);
       margin-bottom: 20px;
+      font-size: 28px;
+      text-align: center;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
     }
 
     .forum-stats-summary {
       display: flex;
-      margin-bottom: 20px;
-      gap: 10px;
+      margin-bottom: 30px;
+      gap: 15px;
+      justify-content: center;
     }
 
     .stat-box {
@@ -88,8 +95,15 @@ categories.forEach(category => {
       max-width: 150px;
       background-color: var(--forum-category-bg);
       border: 1px solid var(--border-color);
+      border-radius: 6px;
       padding: 15px;
       text-align: center;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s ease;
+    }
+
+    .stat-box:hover {
+      transform: translateY(-3px);
     }
 
     .stat-number {
@@ -101,6 +115,148 @@ categories.forEach(category => {
 
     .stat-label {
       font-size: 14px;
+      color: #aaa;
+    }
+
+    .category {
+      margin-bottom: 25px;
+    }
+
+    .category-header {
+      background-color: var(--primary-color);
+      color: var(--secondary-color);
+      padding: 12px 15px;
+      font-weight: bold;
+      font-size: 16px;
+      border-radius: 6px 6px 0 0;
+      text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--border-color);
+      border-bottom: none;
+    }
+
+    .forum-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      border: 1px solid var(--border-color);
+      border-radius: 0 0 6px 6px;
+      overflow: hidden;
+    }
+
+    .forum-item {
+      display: flex;
+      padding: 15px;
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--forum-topic-bg);
+      transition: background-color 0.2s ease;
+    }
+
+    .forum-item:last-child {
+      border-bottom: none;
+    }
+
+    .forum-item:nth-child(even) {
+      background-color: var(--forum-topic-alt);
+    }
+
+    .forum-item:hover {
+      background-color: rgba(138, 3, 3, 0.1);
+    }
+
+    .forum-icon {
+      flex: 0 0 40px;
+      margin-right: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .forum-icon-inner {
+      width: 36px;
+      height: 36px;
+      background-color: var(--primary-color);
+      border-radius: 50%;
+      position: relative;
+      opacity: 0.7;
+    }
+
+    .forum-icon-inner::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      width: 20px;
+      height: 20px;
+      background-color: var(--secondary-color);
+      mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z' /%3E%3C/svg%3E");
+      mask-repeat: no-repeat;
+      mask-size: cover;
+      -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='1.5' stroke='currentColor'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z' /%3E%3C/svg%3E");
+      -webkit-mask-repeat: no-repeat;
+      -webkit-mask-size: cover;
+    }
+
+    .forum-details {
+      flex: 1;
+    }
+
+    .forum-details h3 {
+      margin: 0 0 5px 0;
+      font-size: 16px;
+    }
+
+    .forum-details h3 a {
+      color: var(--link-color);
+      text-decoration: none;
+    }
+
+    .forum-details h3 a:hover {
+      text-decoration: underline;
+    }
+
+    .forum-details p {
+      margin: 0;
+      font-size: 13px;
+      color: #ccc;
+    }
+
+    .forum-stats {
+      flex: 0 0 120px;
+      font-size: 12px;
+      color: #aaa;
+      margin: 0 15px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .forum-stats div {
+      margin-bottom: 5px;
+    }
+
+    .forum-last-post {
+      flex: 0 0 180px;
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      border-left: 1px solid var(--border-color);
+      padding-left: 15px;
+    }
+
+    .no-post-yet {
+      color: #777;
+      font-style: italic;
+    }
+
+    @media (max-width: 1000px) {
+      .forum-stats {
+        flex: 0 0 80px;
+      }
+
+      .forum-last-post {
+        flex: 0 0 140px;
+      }
     }
 
     @media (max-width: 768px) {
@@ -109,8 +265,47 @@ categories.forEach(category => {
       }
 
       .stat-box {
-        flex-basis: calc(50% - 10px);
+        flex-basis: calc(33.33% - 10px);
         max-width: none;
+      }
+
+      .forum-item {
+        flex-wrap: wrap;
+      }
+
+      .forum-details {
+        flex: 1 0 calc(100% - 55px);
+        margin-bottom: 10px;
+      }
+
+      .forum-stats {
+        flex: 1 0 50%;
+        margin: 0;
+        padding-left: 55px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding-top: 10px;
+      }
+
+      .forum-last-post {
+        flex: 1 0 50%;
+        border-left: none;
+        padding-left: 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding-top: 10px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .stat-box {
+        flex-basis: 100%;
+      }
+
+      .forum-stats, .forum-last-post {
+        flex: 1 0 100%;
+      }
+
+      .forum-last-post {
+        margin-top: 10px;
       }
     }
   </style>

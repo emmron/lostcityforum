@@ -19,7 +19,7 @@ const { id } = Astro.params;
 const forumId = Number(id);
 
 // Make sure forumId is a valid number
-if (isNaN(forumId) || forumId <= 0) {
+if (isNaN(forumId)) {
   return Astro.redirect('/forums');
 }
 
@@ -28,7 +28,7 @@ const forum = await db.forum.getById(forumId);
 
 // If the forum doesn't exist, show an error
 if (!forum) {
-  return Astro.redirect('/404');
+  return Astro.redirect('/forums');
 }
 
 // Extract topics from the forum data
@@ -45,14 +45,18 @@ const topics = forum.topics || [];
     <a href={`/topics/create?forum=${forumId}`} class="btn btn-primary">New Topic</a>
   </div>
 
+  <div class="forum-description">
+    <p>{forum.description}</p>
+  </div>
+
   {topics.length > 0 ? (
     <table class="topics-list">
       <thead>
         <tr>
           <th>Topic</th>
-          <th>Author</th>
-          <th>Replies</th>
-          <th>Views</th>
+          <th class="hide-mobile">Author</th>
+          <th class="hide-mobile">Replies</th>
+          <th class="hide-mobile">Views</th>
           <th>Last Post</th>
         </tr>
       </thead>
@@ -67,16 +71,24 @@ const topics = forum.topics || [];
                 {topic.isSticky && <span class="topic-sticky">Sticky: </span>}
                 {topic.isLocked && <span class="topic-locked">Locked: </span>}
                 <a href={`/topics/${topic.id}`}>{topic.title}</a>
+                <div class="mobile-meta">
+                  <span>by {topic.author.username}</span> •
+                  <span>{topic.posts.length > 0 ? topic.posts.length - 1 : 0} replies</span> •
+                  <span>{topic.views} views</span>
+                </div>
               </td>
-              <td>{topic.author.username}</td>
-              <td>{topic.posts.length > 0 ? topic.posts.length - 1 : 0}</td>
-              <td>{topic.views}</td>
-              <td>
+              <td class="hide-mobile">{topic.author.username}</td>
+              <td class="hide-mobile">{topic.posts.length > 0 ? topic.posts.length - 1 : 0}</td>
+              <td class="hide-mobile">{topic.views}</td>
+              <td class="last-post">
                 {lastPost && (
                   <>
-                    <div>{new Date(lastPost.createdAt).toLocaleString()}</div>
-                    <div>by {lastPost.author.username}</div>
+                    <div class="post-date">{new Date(lastPost.createdAt).toLocaleString()}</div>
+                    <div class="post-author">by {lastPost.author.username}</div>
                   </>
+                )}
+                {!lastPost && (
+                  <div class="no-posts">No replies yet</div>
                 )}
               </td>
             </tr>
@@ -94,8 +106,8 @@ const topics = forum.topics || [];
   )}
 
   <div class="forum-footer">
-    <div class="paginator">
-      <a href="#" class="current">1</a>
+    <div class="pagination">
+      <span class="current">1</span>
     </div>
     <a href={`/topics/create?forum=${forumId}`} class="btn btn-primary">New Topic</a>
   </div>
@@ -105,12 +117,20 @@ const topics = forum.topics || [];
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 10px;
     }
 
     .forum-header h1 {
       color: var(--secondary-color);
       font-size: 24px;
+      margin: 0;
+    }
+
+    .forum-description {
+      margin-bottom: 20px;
+      padding: 10px;
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
     }
 
     .sticky-topic {
@@ -132,6 +152,7 @@ const topics = forum.topics || [];
       padding: 30px;
       text-align: center;
       border: 1px solid var(--border-color);
+      border-radius: 4px;
     }
 
     .no-topics p {
@@ -145,30 +166,49 @@ const topics = forum.topics || [];
       margin-top: 20px;
     }
 
+    .pagination {
+      display: flex;
+      gap: 5px;
+    }
+
+    .pagination .current {
+      display: inline-block;
+      padding: 5px 10px;
+      background-color: var(--primary-color);
+      color: white;
+      border-radius: 3px;
+    }
+
     /* Topic List Styles */
     .topics-list {
       width: 100%;
       border-collapse: collapse;
       background-color: var(--forum-topic-bg);
       border: 1px solid var(--border-color);
+      border-radius: 4px;
+      overflow: hidden;
     }
 
     .topics-list th {
       background-color: var(--forum-category-bg);
       color: var(--secondary-color);
-      padding: 10px;
+      padding: 12px 15px;
       text-align: left;
       font-weight: bold;
       border-bottom: 1px solid var(--border-color);
     }
 
     .topics-list td {
-      padding: 12px 10px;
+      padding: 12px 15px;
       border-bottom: 1px solid var(--border-color);
     }
 
     .topics-list tr:nth-child(even) {
       background-color: var(--forum-topic-alt);
+    }
+
+    .topics-list tr:last-child td {
+      border-bottom: none;
     }
 
     .topic-title {
@@ -183,6 +223,49 @@ const topics = forum.topics || [];
 
     .topic-title a:hover {
       text-decoration: underline;
+    }
+
+    .last-post {
+      font-size: 0.9em;
+    }
+
+    .post-date {
+      color: #999;
+    }
+
+    .post-author {
+      font-weight: bold;
+    }
+
+    .no-posts {
+      color: #777;
+      font-style: italic;
+    }
+
+    .mobile-meta {
+      display: none;
+      font-size: 0.85em;
+      color: #999;
+      margin-top: 5px;
+    }
+
+    /* Responsive styles */
+    @media (max-width: 768px) {
+      .hide-mobile {
+        display: none;
+      }
+
+      .mobile-meta {
+        display: block;
+      }
+
+      .topic-title {
+        width: 60%;
+      }
+
+      .last-post {
+        width: 40%;
+      }
     }
   </style>
 </MainLayout>
