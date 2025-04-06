@@ -6,6 +6,7 @@
     "dev": "astro dev",
     "build": "astro build",
     "prebuild": "prisma generate",
+    "postinstall": "prisma generate",
     "preview": "astro preview",
     "astro": "astro",
     "prisma:seed": "node --loader=ts-node/esm prisma/seed.js",
