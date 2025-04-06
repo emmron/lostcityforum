@@ -1,8 +1,22 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
-// Initialize Prisma client
-const prisma = new PrismaClient();
+// Initialize Prisma client with error logging
+let prisma;
+
+try {
+  prisma = new PrismaClient({
+    log: ['query', 'error', 'warn'],
+  });
+} catch (error) {
+  console.error('Failed to initialize Prisma client:', error);
+  throw error;
+}
+
+// Handle potential connection issues
+process.on('unhandledRejection', (error) => {
+  console.error('Unhandled Promise Rejection:', error);
+});
 
 export const db = {
   // User operations
