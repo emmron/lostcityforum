@@ -28,6 +28,59 @@ if (!topic) {
 // Get forum information for breadcrumbs
 const forumId = topic.forum.id;
 const forumTitle = topic.forum.title;
+
+// Check if user is logged in for showing reply controls
+const isLoggedIn = Astro.cookies.has('user_id');
+let currentUser = null;
+
+if (isLoggedIn) {
+  const userId = Number(Astro.cookies.get('user_id').value);
+  currentUser = await db.user.findById(userId);
+}
+
+// Organize posts into a threaded structure
+const rootPosts = [];
+const postMap = new Map();
+
+// Create a map of all posts and identify root posts
+topic.posts.forEach(post => {
+  postMap.set(post.id, { ...post, replies: [] });
+  if (!post.parentId) {
+    rootPosts.push(post.id);
+  }
+});
+
+// Build the tree structure
+topic.posts.forEach(post => {
+  if (post.parentId && postMap.has(post.parentId)) {
+    postMap.get(post.parentId).replies.push(post.id);
+  }
+});
+
+// Function to render posts recursively
+const renderPosts = (postIds, depth = 0, postNumber = { current: 1 }) => {
+  let result = [];
+
+  postIds.forEach(postId => {
+    const post = postMap.get(postId);
+    const currentPostNumber = postNumber.current++;
+
+    result.push({
+      post,
+      depth,
+      postNumber: currentPostNumber,
+    });
+
+    if (post.replies.length > 0) {
+      result = result.concat(renderPosts(post.replies, depth + 1, postNumber));
+    }
+  });
+
+  return result;
+};
+
+// Get the final ordered list of posts with depth information
+const orderedPosts = renderPosts(rootPosts);
 ---
 
 <MainLayout title={topic?.title || "Topic Not Found"}>
@@ -38,7 +91,7 @@ const forumTitle = topic.forum.title;
   <div class="topic-header">
     <h1>{topic.title}</h1>
     <div class="topic-controls">
-      {!topic.isLocked && (
+      {!topic.isLocked && isLoggedIn && (
         <a href={`/topics/${id}/reply`} class="btn btn-primary">Reply</a>
       )}
     </div>
@@ -46,21 +99,31 @@ const forumTitle = topic.forum.title;
 
   <!-- Posts -->
   <div class="posts">
-    {topic.posts.map((post, index) => (
-      <div class="post" id={`post-${post.id}`}>
-        <div class="post-header">
-          <div class="post-info">Post #{index + 1} - {new Date(post.createdAt).toLocaleString()}</div>
+    {orderedPosts.map(({ post, depth, postNumber }) => (
+      <div class="post" id={`post-${post.id}`} style={`margin-left: ${depth * 30}px;`}>
+        <div class="post-header" style={depth > 0 ? 'background-color: var(--forum-category-bg);' : ''}>
+          <div class="post-info">Post #{postNumber} - {new Date(post.createdAt).toLocaleString()}</div>
           <div class="post-controls">
             <a href={`#post-${post.id}`} title="Link to this post">#</a>
-            <a href={`/topics/${id}/quote/${post.id}`} title="Quote this post">Quote</a>
-            {post.author.username === "Admin" && (
+            {isLoggedIn && !topic.isLocked && (
+              <>
+                <a href={`/topics/${id}/reply?parent=${post.id}`} title="Reply to this post">Reply</a>
+                <a href={`/topics/${id}/quote/${post.id}`} title="Quote this post">Quote</a>
+              </>
+            )}
+            {isLoggedIn && (currentUser?.id === post.author.id || currentUser?.username === "Admin") && (
               <a href={`/topics/${id}/edit/${post.id}`} title="Edit this post">Edit</a>
+            )}
+            {isLoggedIn && currentUser && (
+              <a href={`/messages/compose?to=${post.author.username}`} title="Send message">Message</a>
             )}
           </div>
         </div>
-        <div class="post-content">
+        <div class="post-content" style={depth > 0 ? 'border-left: 4px solid var(--primary-color);' : ''}>
           <div class="post-user">
-            <div class="username">{post.author.username}</div>
+            <div class="username">
+              <a href={`/members/${post.author.username}`}>{post.author.username}</a>
+            </div>
             <div class="avatar">
               <img src={post.author.avatarUrl || "/images/avatars/default.png"} alt={`${post.author.username}'s avatar`} />
             </div>
@@ -89,10 +152,12 @@ const forumTitle = topic.forum.title;
     <div class="paginator">
       <a href="#" class="current">1</a>
     </div>
-    {!topic.isLocked ? (
+    {!topic.isLocked && isLoggedIn ? (
       <a href={`/topics/${id}/reply`} class="btn btn-primary">Reply</a>
-    ) : (
+    ) : topic.isLocked ? (
       <div class="locked-notice">This topic is locked and cannot be replied to</div>
+    ) : (
+      <div class="login-notice">Please <a href={`/login?returnUrl=${encodeURIComponent(`/topics/${id}`)}`}>login</a> to reply</div>
     )}
   </div>
 
@@ -115,6 +180,11 @@ const forumTitle = topic.forum.title;
 
     .post {
       margin-bottom: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .post:target {
+      box-shadow: 0 0 10px var(--primary-color);
     }
 
     .post-header {
@@ -162,6 +232,15 @@ const forumTitle = topic.forum.title;
       margin-bottom: 10px;
     }
 
+    .username a {
+      color: var(--link-color);
+      text-decoration: none;
+    }
+
+    .username a:hover {
+      text-decoration: underline;
+    }
+
     .avatar img {
       max-width: 100px;
       height: auto;
@@ -178,51 +257,42 @@ const forumTitle = topic.forum.title;
       line-height: 1.6;
     }
 
-    .post-text p {
-      margin-bottom: 12px;
-    }
-
-    .post-text ul, .post-text ol {
-      margin-bottom: 12px;
-      margin-left: 20px;
-    }
-
-    .post-text h3, .post-text h4 {
-      color: var(--secondary-color);
-      margin: 15px 0 10px;
+    .edited-note {
+      font-size: 12px;
+      color: #999;
+      margin-top: 10px;
+      font-style: italic;
     }
 
     .signature {
       margin-top: 20px;
       font-size: 12px;
-      color: #777;
-      font-style: italic;
+      color: #666;
     }
 
     .signature hr {
       border: none;
       border-top: 1px solid var(--border-color);
-      margin-bottom: 5px;
+      margin: 5px 0;
     }
 
-    .edited-note {
-      font-size: 11px;
-      color: #666;
-      font-style: italic;
-      margin-top: 10px;
+    .locked-notice, .login-notice {
+      background-color: var(--forum-topic-alt);
+      padding: 10px;
+      border-radius: 5px;
+      text-align: center;
     }
 
-    .topic-footer {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+    @media (max-width: 768px) {
+      .post-content {
+        flex-direction: column;
+      }
 
-    .locked-notice {
-      background-color: rgba(138, 3, 3, 0.2);
-      padding: 8px 15px;
-      border: 1px solid var(--primary-color);
-      border-radius: 3px;
+      .post-user {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        flex: none;
+      }
     }
   </style>
 </MainLayout>

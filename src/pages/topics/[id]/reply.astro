@@ -5,18 +5,20 @@ import { db } from "../../../lib/db.js";
 // Set to server-rendering instead of static generation
 export const prerender = false;
 
-// Get the topic ID from the parameters
+// Get the topic ID from the URL
 const { id } = Astro.params;
 
-// Fetch topic details
+// Get parent post ID if replying to a specific post
+const parentId = Astro.url.searchParams.get('parent');
+
+// Fetch topic data
 const topic = await db.topic.getById(Number(id));
 
-// Redirect if topic doesn't exist
+// If the topic doesn't exist or is locked, redirect
 if (!topic) {
-  return Astro.redirect('/forums');
+  return Astro.redirect('/topics');
 }
 
-// If topic is locked, redirect to topic page
 if (topic.isLocked) {
   return Astro.redirect(`/topics/${id}`);
 }
@@ -37,9 +39,6 @@ if (!isLoggedIn) {
 // Get the user ID from the cookie
 const userId = Number(Astro.cookies.get('user_id').value);
 
-// Fetch the user from the database
-const user = await db.user.findById(userId);
-
 // Handle form submission
 if (Astro.request.method === 'POST') {
   try {
@@ -56,19 +55,26 @@ if (Astro.request.method === 'POST') {
       errorMessage = 'Content must be at least 10 characters long';
     } else {
       // Create the post
-      await db.post.create({
+      const post = await db.post.create({
         content,
         topicId: Number(id),
-        authorId: userId
+        authorId: userId,
+        parentId: parentId ? Number(parentId) : null
       });
 
-      // Redirect to the topic
-      return Astro.redirect(`/topics/${id}#post-${topic.posts.length + 1}`);
+      // Redirect to the topic, focusing on the new post
+      return Astro.redirect(`/topics/${id}#post-${post.id}`);
     }
   } catch (error) {
     console.error('Error creating reply:', error);
-    errorMessage = 'An error occurred while submitting your reply. Please try again.';
+    errorMessage = 'An error occurred while creating your reply. Please try again.';
   }
+}
+
+// Get parent post for quoting/context if replying to a specific post
+let parentPost = null;
+if (parentId) {
+  parentPost = await db.post.getById(Number(parentId));
 }
 ---
 
@@ -83,6 +89,18 @@ if (Astro.request.method === 'POST') {
     {errorMessage && (
       <div class="alert alert-error">
         {errorMessage}
+      </div>
+    )}
+
+    {parentPost && (
+      <div class="parent-post">
+        <h3>Replying to {parentPost.author.username}'s post:</h3>
+        <blockquote>
+          <p>{parentPost.content.length > 150
+            ? parentPost.content.substring(0, 150) + '...'
+            : parentPost.content}</p>
+          <footer><a href={`/topics/${id}#post-${parentPost.id}`}>View post</a></footer>
+        </blockquote>
       </div>
     )}
 
@@ -143,28 +161,41 @@ if (Astro.request.method === 'POST') {
     }
 
     .editor-help {
-      font-size: 12px;
-      color: #666;
       margin-top: 5px;
+      font-size: 12px;
+      color: var(--text-muted);
     }
 
     .form-actions {
       display: flex;
       gap: 10px;
-      margin-top: 20px;
     }
 
-    .alert {
-      padding: 15px;
+    .parent-post {
       margin-bottom: 20px;
-      border: 1px solid transparent;
-      border-radius: 4px;
+      border-left: 4px solid var(--primary-color);
+      padding-left: 15px;
     }
 
-    .alert-error {
-      color: #721c24;
-      background-color: #f8d7da;
-      border-color: #f5c6cb;
+    .parent-post h3 {
+      color: var(--secondary-color);
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    blockquote {
+      margin: 0;
+      padding: 10px 15px;
+      background-color: var(--forum-topic-alt);
+      border-radius: 5px;
+      font-style: italic;
+      color: var(--text-muted);
+    }
+
+    blockquote footer {
+      margin-top: 10px;
+      text-align: right;
+      font-style: normal;
     }
   </style>
 </MainLayout>

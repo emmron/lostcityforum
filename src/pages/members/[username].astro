@@ -1,0 +1,397 @@
+---
+import MainLayout from "../../layouts/MainLayout.astro";
+import { db } from "../../lib/db.js";
+
+// Get username from URL parameters
+const { username } = Astro.params;
+
+// Fetch user data
+const user = await db.user.findByUsername(username);
+
+// Handle user not found
+if (!user) {
+  return Astro.redirect("/members");
+}
+
+// Check if current user is logged in
+const isLoggedIn = Astro.cookies.has('user_id');
+let currentUser = null;
+let isOwnProfile = false;
+
+if (isLoggedIn) {
+  const userId = Number(Astro.cookies.get('user_id').value);
+  currentUser = await db.user.findById(userId);
+  isOwnProfile = currentUser?.id === user.id;
+}
+
+// Fetch user's posts with more detail for the profile
+const posts = await db.post.findUserPosts(user.id);
+
+// Get stats for the user
+const joinDate = new Date(user.createdAt);
+const memberForDays = Math.floor((Date.now() - joinDate.getTime()) / (1000 * 60 * 60 * 24));
+const postsPerDay = memberForDays > 0 ? (user.postsCount / memberForDays).toFixed(2) : user.postsCount;
+---
+
+<MainLayout title={`${user.username}'s Profile`} activeNav="members">
+  <div class="breadcrumbs">
+    <a href="/">Home</a> &raquo;
+    <a href="/members">Members</a> &raquo;
+    {user.username}
+  </div>
+
+  <div class="profile-container">
+    <div class="profile-header">
+      <div class="profile-avatar">
+        <img
+          src={user.avatarUrl || "/images/avatars/default.png"}
+          alt={user.username}
+        />
+      </div>
+      <div class="profile-info">
+        <h1>{user.username}</h1>
+        <div class="profile-stats">
+          <div class="stat">
+            <span class="stat-label">Posts:</span>
+            <span class="stat-value">{user.postsCount}</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Joined:</span>
+            <span class="stat-value">{joinDate.toLocaleDateString()}</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Member for:</span>
+            <span class="stat-value">{memberForDays} days</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Posts per day:</span>
+            <span class="stat-value">{postsPerDay}</span>
+          </div>
+        </div>
+        {isLoggedIn && !isOwnProfile && (
+          <div class="profile-actions">
+            <a href={`/messages/compose?to=${user.username}`} class="btn btn-primary">
+              Send Message
+            </a>
+          </div>
+        )}
+      </div>
+    </div>
+
+    {user.signature && (
+      <div class="profile-signature">
+        <h3>Signature</h3>
+        <div class="signature-content">
+          {user.signature}
+        </div>
+      </div>
+    )}
+
+    <div class="profile-tabs">
+      <button class="tab-button active" data-tab="recent-posts">Recent Posts</button>
+      <button class="tab-button" data-tab="statistics">Statistics</button>
+      {isOwnProfile && (
+        <button class="tab-button" data-tab="account-settings">Account Settings</button>
+      )}
+    </div>
+
+    <div class="tab-content">
+      <div id="recent-posts" class="tab-pane active">
+        <h3>Recent Posts</h3>
+        {posts && posts.length > 0 ? (
+          <div class="recent-posts">
+            {posts.map(post => (
+              <div class="post-preview">
+                <div class="post-info">
+                  <a href={`/topics/${post.topic.id}`} class="post-topic">
+                    {post.topic.title}
+                  </a>
+                  <span class="post-date">
+                    {new Date(post.createdAt).toLocaleString()}
+                  </span>
+                </div>
+                <div class="post-snippet">
+                  {post.content.length > 100
+                    ? post.content.substring(0, 100) + '...'
+                    : post.content}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p class="no-posts">This user has not made any posts yet.</p>
+        )}
+      </div>
+
+      <div id="statistics" class="tab-pane">
+        <h3>Statistics</h3>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-title">Total Posts</div>
+            <div class="stat-value">{user.postsCount}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📅</div>
+            <div class="stat-title">Join Date</div>
+            <div class="stat-value">{joinDate.toLocaleDateString()}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">⏱️</div>
+            <div class="stat-title">Member For</div>
+            <div class="stat-value">{memberForDays} days</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📝</div>
+            <div class="stat-title">Posts Per Day</div>
+            <div class="stat-value">{postsPerDay}</div>
+          </div>
+        </div>
+      </div>
+
+      {isOwnProfile && (
+        <div id="account-settings" class="tab-pane">
+          <h3>Account Settings</h3>
+          <p class="settings-info">You can update your profile settings here.</p>
+          <a href="/account/edit" class="btn btn-primary">Edit Profile</a>
+        </div>
+      )}
+    </div>
+  </div>
+</MainLayout>
+
+<style>
+  .profile-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+
+  .profile-header {
+    display: flex;
+    align-items: center;
+    background-color: var(--forum-category-bg);
+    padding: 2rem;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 2rem;
+  }
+
+  .profile-avatar {
+    margin-right: 2rem;
+  }
+
+  .profile-avatar img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 4px solid var(--primary-color);
+    background-color: var(--container-bg);
+    padding: 3px;
+  }
+
+  .profile-info h1 {
+    margin: 0 0 1rem 0;
+    color: var(--secondary-color);
+  }
+
+  .profile-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    margin-bottom: 1rem;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stat-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  .stat-value {
+    font-weight: bold;
+    font-size: 1.1rem;
+  }
+
+  .profile-actions {
+    margin-top: 1rem;
+  }
+
+  .profile-signature,
+  .tab-content {
+    background-color: var(--forum-category-bg);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 2rem;
+  }
+
+  .profile-signature h3,
+  .tab-content h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: var(--secondary-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+  }
+
+  .signature-content {
+    font-style: italic;
+    color: var(--text-color);
+    line-height: 1.6;
+  }
+
+  .profile-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .tab-button {
+    padding: 0.75rem 1.5rem;
+    background-color: var(--forum-topic-alt);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .tab-button:hover {
+    background-color: var(--primary-color);
+    color: white;
+  }
+
+  .tab-button.active {
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: bold;
+  }
+
+  .tab-pane {
+    display: none;
+  }
+
+  .tab-pane.active {
+    display: block;
+  }
+
+  .recent-posts {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .post-preview {
+    padding: 1rem;
+    background-color: var(--container-bg);
+    border-radius: var(--border-radius-sm);
+    border-left: 4px solid var(--primary-color);
+  }
+
+  .post-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+
+  .post-topic {
+    font-weight: bold;
+    color: var(--link-color);
+    text-decoration: none;
+  }
+
+  .post-date {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  .post-snippet {
+    color: var(--text-color);
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  .no-posts {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  .stat-card {
+    background-color: var(--container-bg);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-sm);
+    text-align: center;
+    transition: transform 0.3s ease;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-5px);
+  }
+
+  .stat-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-title {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .settings-info {
+    margin-bottom: 1.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .profile-header {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .profile-avatar {
+      margin-right: 0;
+      margin-bottom: 1.5rem;
+    }
+
+    .profile-stats {
+      justify-content: center;
+    }
+
+    .profile-tabs {
+      flex-direction: column;
+    }
+  }
+</style>
+
+<script>
+  // Tab switching functionality
+  document.addEventListener('DOMContentLoaded', () => {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        // Remove active class from all buttons and panes
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        tabPanes.forEach(pane => pane.classList.remove('active'));
+
+        // Add active class to clicked button and corresponding pane
+        button.classList.add('active');
+        const tabId = button.getAttribute('data-tab');
+        document.getElementById(tabId).classList.add('active');
+      });
+    });
+  });
+</script>

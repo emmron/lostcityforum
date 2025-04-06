@@ -3,7 +3,7 @@ import MainLayout from "../../layouts/MainLayout.astro";
 import { db } from "../../lib/db.js";
 
 // Fetch users
-const users = await db.user.findMany();
+let users = await db.user.findMany();
 
 // Get sort parameter from URL
 const url = Astro.url;
@@ -82,7 +82,9 @@ const getPageUrl = (page) => {
               />
             </div>
             <div class="member-info">
-              <h3 class="member-name">{user.username}</h3>
+              <h3 class="member-name">
+                <a href={`/members/${user.username}`}>{user.username}</a>
+              </h3>
               <p class="member-posts">Posts: {user.postsCount}</p>
               <p class="member-joined">Joined: {new Date(user.createdAt).toLocaleDateString()}</p>
             </div>
@@ -186,6 +188,17 @@ const getPageUrl = (page) => {
     color: var(--link-color);
     margin: 0 0 0.5rem;
     font-size: 1.1rem;
+  }
+
+  .member-name a {
+    color: var(--link-color);
+    text-decoration: none;
+    transition: color var(--transition-speed) ease;
+  }
+
+  .member-name a:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
   }
 
   .member-posts, .member-joined {

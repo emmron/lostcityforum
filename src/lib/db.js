@@ -36,6 +36,11 @@ export const db = {
       });
     },
 
+    // Find all users
+    async findMany(options = {}) {
+      return prisma.user.findMany(options);
+    },
+
     // Find a user by username
     async findByUsername(username) {
       return prisma.user.findUnique({
@@ -288,14 +293,30 @@ export const db = {
       });
     },
 
+    // Find posts by user ID
+    async findUserPosts(userId) {
+      return prisma.post.findMany({
+        where: {
+          authorId: Number(userId)
+        },
+        include: {
+          topic: true
+        },
+        orderBy: {
+          createdAt: 'desc'
+        },
+        take: 10
+      });
+    },
+
     // Create a new post
-    async create({ content, topicId, authorId }) {
+    async create({ content, topicId, authorId, parentId = null }) {
       // Create post and update counts in a transaction
       return prisma.$transaction(async (tx) => {
         // Get the topic to find its forumId
         const topic = await tx.topic.findUnique({
           where: { id: Number(topicId) },
-          select: { forumId: true }
+          select: { forumId: true, authorId: true }
         });
 
         // Create the post
@@ -303,7 +324,8 @@ export const db = {
           data: {
             content,
             authorId: Number(authorId),
-            topicId: Number(topicId)
+            topicId: Number(topicId),
+            parentId: parentId ? Number(parentId) : null
           }
         });
 
@@ -329,6 +351,39 @@ export const db = {
           }
         });
 
+        // Create notification for the topic author if this is a reply to their topic
+        // and the reply author is not the topic author
+        if (topic.authorId !== Number(authorId)) {
+          await tx.notification.create({
+            data: {
+              type: 'reply',
+              content: 'Someone replied to your topic',
+              userId: topic.authorId,
+              link: `/topics/${topicId}`
+            }
+          });
+        }
+
+        // Create notification if this is a reply to a specific post
+        if (parentId) {
+          const parentPost = await tx.post.findUnique({
+            where: { id: Number(parentId) },
+            select: { authorId: true }
+          });
+
+          // Only notify if the reply author is not the parent post author
+          if (parentPost && parentPost.authorId !== Number(authorId)) {
+            await tx.notification.create({
+              data: {
+                type: 'reply',
+                content: 'Someone replied to your post',
+                userId: parentPost.authorId,
+                link: `/topics/${topicId}#post-${post.id}`
+              }
+            });
+          }
+        }
+
         return post;
       });
     },
@@ -341,6 +396,136 @@ export const db = {
           content,
           isEdited: true,
           editedAt: new Date()
+        }
+      });
+    }
+  },
+
+  // Message operations
+  message: {
+    // Create a new message
+    async create({ subject, content, senderId, receiverId }) {
+      // Create message and notification in a transaction
+      return prisma.$transaction(async (tx) => {
+        // Create the message
+        const message = await tx.message.create({
+          data: {
+            subject,
+            content,
+            senderId: Number(senderId),
+            receiverId: Number(receiverId)
+          }
+        });
+
+        // Create notification for receiver
+        await tx.notification.create({
+          data: {
+            type: 'message',
+            content: `New message: ${subject}`,
+            userId: Number(receiverId),
+            link: `/messages/inbox/${message.id}`
+          }
+        });
+
+        return message;
+      });
+    },
+
+    // Get inbox messages for a user
+    async getInbox(userId) {
+      return prisma.message.findMany({
+        where: {
+          receiverId: Number(userId)
+        },
+        include: {
+          sender: true
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+    },
+
+    // Get sent messages for a user
+    async getSent(userId) {
+      return prisma.message.findMany({
+        where: {
+          senderId: Number(userId)
+        },
+        include: {
+          receiver: true
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+    },
+
+    // Get a single message by ID
+    async getById(id, userId) {
+      const message = await prisma.message.findUnique({
+        where: { id: Number(id) },
+        include: {
+          sender: true,
+          receiver: true
+        }
+      });
+
+      // Verify that the user requesting the message is either the sender or receiver
+      if (message && (message.senderId === Number(userId) || message.receiverId === Number(userId))) {
+        // Mark as read if the user is the receiver and it's unread
+        if (message.receiverId === Number(userId) && !message.isRead) {
+          await prisma.message.update({
+            where: { id: Number(id) },
+            data: { isRead: true }
+          });
+        }
+        return message;
+      }
+
+      return null;
+    }
+  },
+
+  // Notification operations
+  notification: {
+    // Get notifications for a user
+    async getForUser(userId) {
+      return prisma.notification.findMany({
+        where: {
+          userId: Number(userId)
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+    },
+
+    // Mark a notification as read
+    async markAsRead(id) {
+      return prisma.notification.update({
+        where: { id: Number(id) },
+        data: { isRead: true }
+      });
+    },
+
+    // Mark all notifications as read for a user
+    async markAllAsRead(userId) {
+      return prisma.notification.updateMany({
+        where: {
+          userId: Number(userId),
+          isRead: false
+        },
+        data: { isRead: true }
+      });
+    },
+
+    // Get unread notification count for a user
+    async getUnreadCount(userId) {
+      return prisma.notification.count({
+        where: {
+          userId: Number(userId),
+          isRead: false
         }
       });
     }
