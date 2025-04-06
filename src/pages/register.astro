@@ -40,14 +40,19 @@ if (Astro.request.method === 'POST') {
           errorMessage = 'Email is already registered';
         } else {
           // Create the user
-          await db.user.create({
-            username,
-            email,
-            password
-          });
+          try {
+            await db.user.create({
+              username,
+              email,
+              password
+            });
 
-          // Redirect to login page with success message
-          return Astro.redirect('/login?registered=true');
+            // Redirect to login page with success message
+            return Astro.redirect('/login?registered=true');
+          } catch (error) {
+            console.error('User creation error:', error);
+            errorMessage = 'An error occurred while creating your account. Please try again.';
+          }
         }
       }
     }

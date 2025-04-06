@@ -2,16 +2,26 @@
 import MainLayout from "../../layouts/MainLayout.astro";
 import { db } from "../../lib/db.js";
 
-// Get forum IDs for static paths
-export async function getStaticPaths() {
-  const forums = await db.forum.getAll();
-  return forums.map(forum => ({
-    params: { id: forum.id.toString() },
-    props: { forumId: forum.id }
-  }));
-}
+// Set to server-rendering instead of static generation
+export const prerender = false;
 
-const { forumId } = Astro.props;
+// The getStaticPaths function can be removed since we're using server-side rendering
+// export async function getStaticPaths() {
+//   const forums = await db.forum.getAll();
+//   return forums.map(forum => ({
+//     params: { id: forum.id.toString() },
+//     props: { forumId: forum.id }
+//   }));
+// }
+
+// Get the forum ID from the params
+const { id } = Astro.params;
+const forumId = Number(id);
+
+// Make sure forumId is a valid number
+if (isNaN(forumId) || forumId <= 0) {
+  return Astro.redirect('/forums');
+}
 
 // Fetch forum data from database
 const forum = await db.forum.getById(forumId);

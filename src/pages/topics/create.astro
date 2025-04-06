@@ -2,6 +2,9 @@
 import MainLayout from "../../layouts/MainLayout.astro";
 import { db } from "../../lib/db.js";
 
+// Set to server-rendering instead of static generation
+export const prerender = false;
+
 // Get the forum ID from the query string
 const forumId = Astro.url.searchParams.get('forum');
 

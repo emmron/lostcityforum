@@ -1,0 +1,10 @@
+---
+// Set to server-rendering
+export const prerender = false;
+
+// Clear the user cookie
+Astro.cookies.delete('user_id');
+
+// Redirect to the home page
+return Astro.redirect('/');
+---

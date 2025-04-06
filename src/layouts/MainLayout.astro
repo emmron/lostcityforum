@@ -1,10 +1,22 @@
 ---
+import { db } from "../lib/db.js";
+
 interface Props {
   title: string;
   description?: string;
 }
 
 const { title, description = "A forum for 2004scape Lost City fans" } = Astro.props;
+
+// Check if user is logged in
+const isLoggedIn = Astro.cookies.has('user_id');
+let currentUser = null;
+
+if (isLoggedIn) {
+  const userId = Number(Astro.cookies.get('user_id').value);
+  // Fetch the user from the database
+  currentUser = await db.user.findById(userId);
+}
 ---
 
 <!DOCTYPE html>
@@ -24,8 +36,17 @@ const { title, description = "A forum for 2004scape Lost City fans" } = Astro.pr
             <h1>Lost City Forum</h1>
           </a>
           <div class="user-controls">
-            <a href="/login" class="btn btn-primary">Login</a>
-            <a href="/register" class="btn">Register</a>
+            {isLoggedIn && currentUser ? (
+              <div class="logged-in-controls">
+                <span>Welcome, <a href="/profile">{currentUser.username}</a></span>
+                <a href="/logout" class="btn">Logout</a>
+              </div>
+            ) : (
+              <div class="login-controls">
+                <a href="/login" class="btn btn-primary">Login</a>
+                <a href="/register" class="btn">Register</a>
+              </div>
+            )}
           </div>
         </div>
         <nav class="main-nav">
@@ -51,3 +72,34 @@ const { title, description = "A forum for 2004scape Lost City fans" } = Astro.pr
     </div>
   </body>
 </html>
+
+<style>
+  .user-controls {
+    display: flex;
+    align-items: center;
+  }
+
+  .logged-in-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .logged-in-controls span {
+    color: var(--text-color);
+  }
+
+  .logged-in-controls a {
+    color: var(--link-color);
+    text-decoration: none;
+  }
+
+  .logged-in-controls a:hover {
+    text-decoration: underline;
+  }
+
+  .login-controls {
+    display: flex;
+    gap: 10px;
+  }
+</style>

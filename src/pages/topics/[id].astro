@@ -2,12 +2,15 @@
 import MainLayout from "../../layouts/MainLayout.astro";
 import { db } from "../../lib/db.js";
 
-// Get topic IDs for static paths
-export async function getStaticPaths() {
-  // For SSG, we need to fetch all topics in advance
-  // In a real app with many topics, you might want to use SSR instead with Astro.params
-  return [{ params: { id: "1" } }]; // Just support the initial welcome topic for now
-}
+// Set to server-rendering instead of static generation
+export const prerender = false;
+
+// The original getStaticPaths function can be removed since we're using server-side rendering
+// export async function getStaticPaths() {
+//   // For SSG, we need to fetch all topics in advance
+//   // In a real app with many topics, you might want to use SSR instead with Astro.params
+//   return [{ params: { id: "1" } }]; // Just support the initial welcome topic for now
+// }
 
 const { id } = Astro.params;
 

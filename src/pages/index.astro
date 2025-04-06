@@ -1,167 +1,26 @@
 ---
 import MainLayout from "../layouts/MainLayout.astro";
+import { db } from "../lib/db.js";
 
-// Mock data for forum categories and topics
-const categories = [
-  {
-    id: 1,
-    name: "Lost City Announcements",
-    forums: [
-      {
-        id: 1,
-        title: "Official Announcements",
-        description: "Important news and updates about 2004scape Lost City",
-        topics: 12,
-        posts: 45,
-        lastPost: {
-          title: "Welcome to the Lost City Forum!",
-          date: "2023-04-05 15:32",
-          author: "Admin"
-        }
-      },
-      {
-        id: 2,
-        title: "Rules & Guidelines",
-        description: "Forum rules, guidelines, and code of conduct",
-        topics: 3,
-        posts: 28,
-        lastPost: {
-          title: "Updated Forum Rules for 2024",
-          date: "2024-01-15 09:17",
-          author: "Moderator"
-        }
-      }
-    ]
-  },
-  {
-    id: 2,
-    name: "Lost City General",
-    forums: [
-      {
-        id: 3,
-        title: "General Discussion",
-        description: "Discussion about any 2004scape Lost City related topics",
-        topics: 87,
-        posts: 523,
-        lastPost: {
-          title: "What's your favorite Lost City memory?",
-          date: "2024-04-04 19:45",
-          author: "OldschoolPlayer"
-        }
-      },
-      {
-        id: 4,
-        title: "Guides & Tutorials",
-        description: "Guides, walkthroughs, and help for Lost City",
-        topics: 42,
-        posts: 156,
-        lastPost: {
-          title: "Complete Lost City Quest Guide 2004-style",
-          date: "2024-03-28 14:23",
-          author: "QuestMaster"
-        }
-      },
-      {
-        id: 5,
-        title: "Technical Support",
-        description: "Help with technical issues and installation",
-        topics: 31,
-        posts: 129,
-        lastPost: {
-          title: "Can't connect to server - help needed",
-          date: "2024-04-05 08:12",
-          author: "NewPlayer2004"
-        }
-      }
-    ]
-  },
-  {
-    id: 3,
-    name: "Lost City Community",
-    forums: [
-      {
-        id: 6,
-        title: "Events & Meetups",
-        description: "Upcoming events, gatherings, and community activities",
-        topics: 15,
-        posts: 87,
-        lastPost: {
-          title: "Wilderness PK Event - Sunday April 7th",
-          date: "2024-04-03 21:18",
-          author: "EventCoordinator"
-        }
-      },
-      {
-        id: 7,
-        title: "Media & Screenshots",
-        description: "Share your screenshots, videos, and art related to Lost City",
-        topics: 28,
-        posts: 103,
-        lastPost: {
-          title: "My 2004 Lost City collection of screenshots",
-          date: "2024-04-01 16:54",
-          author: "Nostalgic2004"
-        }
-      },
-      {
-        id: 8,
-        title: "Off-Topic",
-        description: "Discussions not directly related to Lost City",
-        topics: 35,
-        posts: 217,
-        lastPost: {
-          title: "Other 2004-era games you play?",
-          date: "2024-04-04 22:07",
-          author: "GamerFromThePast"
-        }
-      }
-    ]
-  }
-];
+// Fetch categories with forums from the database
+const categories = await db.category.getAll();
 
-// Mock data for recent topics
-const recentTopics = [
-  {
-    id: 101,
-    title: "Welcome to the Lost City Forum!",
-    author: "Admin",
-    replies: 33,
-    views: 1245,
-    lastPost: "2024-04-05 15:32"
-  },
-  {
-    id: 102,
-    title: "Wilderness PK Event - Sunday April 7th",
-    author: "EventCoordinator",
-    replies: 17,
-    views: 432,
-    lastPost: "2024-04-03 21:18"
-  },
-  {
-    id: 103,
-    title: "Can't connect to server - help needed",
-    author: "NewPlayer2004",
-    replies: 5,
-    views: 148,
-    lastPost: "2024-04-05 08:12"
-  },
-  {
-    id: 104,
-    title: "Complete Lost City Quest Guide 2004-style",
-    author: "QuestMaster",
-    replies: 12,
-    views: 567,
-    lastPost: "2024-03-28 14:23"
-  },
-  {
-    id: 105,
-    title: "My 2004 Lost City collection of screenshots",
-    author: "Nostalgic2004",
-    replies: 9,
-    views: 321,
-    lastPost: "2024-04-01 16:54"
-  }
-];
+// Calculate total stats
+let totalTopics = 0;
+let totalPosts = 0;
+let totalForums = 0;
+
+// Process categories to calculate totals
+categories.forEach(category => {
+  totalForums += category.forums.length;
+  category.forums.forEach(forum => {
+    totalTopics += forum.topicsCount || 0;
+    totalPosts += forum.postsCount || 0;
+  });
+});
+
+// In the future, could add a function to get latest topics across all forums
+const recentTopics = [];
 ---
 
 <MainLayout title="Home">
@@ -173,23 +32,23 @@ const recentTopics = [
   <!-- Forum Statistics Summary -->
   <section class="forum-stats-summary">
     <div class="stat-box">
-      <div class="stat-number">8</div>
+      <div class="stat-number">{totalForums}</div>
       <div class="stat-label">Forums</div>
     </div>
     <div class="stat-box">
-      <div class="stat-number">253</div>
+      <div class="stat-number">{totalTopics}</div>
       <div class="stat-label">Topics</div>
     </div>
     <div class="stat-box">
-      <div class="stat-number">1,288</div>
+      <div class="stat-number">{totalPosts}</div>
       <div class="stat-label">Posts</div>
     </div>
     <div class="stat-box">
-      <div class="stat-number">756</div>
+      <div class="stat-number">0</div>
       <div class="stat-label">Members</div>
     </div>
     <div class="stat-box">
-      <div class="stat-number">42</div>
+      <div class="stat-number">1</div>
       <div class="stat-label">Online</div>
     </div>
   </section>
@@ -208,13 +67,11 @@ const recentTopics = [
                   <p>{forum.description}</p>
                 </div>
                 <div class="forum-stats">
-                  <div>Topics: {forum.topics}</div>
-                  <div>Posts: {forum.posts}</div>
+                  <div>Topics: {forum.topicsCount || 0}</div>
+                  <div>Posts: {forum.postsCount || 0}</div>
                 </div>
                 <div class="forum-last-post">
-                  <div>{forum.lastPost.title}</div>
-                  <div>by {forum.lastPost.author}</div>
-                  <div>{forum.lastPost.date}</div>
+                  <div>No posts yet</div>
                 </div>
               </li>
             ))}
@@ -225,35 +82,47 @@ const recentTopics = [
   </section>
 
   <!-- Recent Topics -->
-  <section class="recent-topics">
-    <h2>Recent Topics</h2>
-    <table class="topics-list">
-      <thead>
-        <tr>
-          <th>Topic</th>
-          <th>Author</th>
-          <th>Replies</th>
-          <th>Views</th>
-          <th>Last Post</th>
-        </tr>
-      </thead>
-      <tbody>
-        {
-          recentTopics.map((topic) => (
-            <tr>
-              <td class="topic-title">
-                <a href={`/topics/${topic.id}`}>{topic.title}</a>
-              </td>
-              <td>{topic.author}</td>
-              <td>{topic.replies}</td>
-              <td>{topic.views}</td>
-              <td>{topic.lastPost}</td>
-            </tr>
-          ))
-        }
-      </tbody>
-    </table>
-  </section>
+  {recentTopics.length > 0 ? (
+    <section class="recent-topics">
+      <h2>Recent Topics</h2>
+      <table class="topics-list">
+        <thead>
+          <tr>
+            <th>Topic</th>
+            <th>Author</th>
+            <th>Replies</th>
+            <th>Views</th>
+            <th>Last Post</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            recentTopics.map((topic) => (
+              <tr>
+                <td class="topic-title">
+                  <a href={`/topics/${topic.id}`}>{topic.title}</a>
+                </td>
+                <td>{topic.author.username}</td>
+                <td>{topic.posts ? topic.posts.length - 1 : 0}</td>
+                <td>{topic.views}</td>
+                <td>{topic.updatedAt ? new Date(topic.updatedAt).toLocaleString() : ''}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </section>
+  ) : (
+    <section class="recent-topics">
+      <h2>Recent Topics</h2>
+      <div class="no-topics">
+        <p>No topics have been created yet.</p>
+        <p>
+          <a href="/forums" class="btn">Visit Forums</a>
+        </p>
+      </div>
+    </section>
+  )}
 
   <style>
     .welcome-banner {
