@@ -4,9 +4,14 @@ import { db } from "../lib/db.js";
 interface Props {
   title: string;
   description?: string;
+  activeNav?: string;
 }
 
-const { title, description = "A forum for 2004scape Lost City fans" } = Astro.props;
+const {
+  title,
+  description = "A forum for 2004scape Lost City fans",
+  activeNav = ""
+} = Astro.props;
 
 // Check if user is logged in
 const isLoggedIn = Astro.cookies.has('user_id');
@@ -27,6 +32,7 @@ if (isLoggedIn) {
     <meta name="description" content={description} />
     <title>{title} | 2004scape Lost City Forum</title>
     <link rel="stylesheet" href="/styles/global.css" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
   </head>
   <body>
     <div class="container">
@@ -38,23 +44,37 @@ if (isLoggedIn) {
           <div class="user-controls">
             {isLoggedIn && currentUser ? (
               <div class="logged-in-controls">
-                <span>Welcome, <a href="/profile">{currentUser.username}</a></span>
-                <a href="/logout" class="btn">Logout</a>
+                <span>Welcome, <a href="/profile" class="username">{currentUser.username}</a></span>
+                <a href="/messages" class="btn btn-icon" title="Messages">
+                  <span class="icon">✉️</span>
+                </a>
+                <a href="/notifications" class="btn btn-icon" title="Notifications">
+                  <span class="icon">🔔</span>
+                </a>
+                <a href="/logout" class="btn btn-secondary">Logout</a>
               </div>
             ) : (
               <div class="login-controls">
                 <a href="/login" class="btn btn-primary">Login</a>
-                <a href="/register" class="btn">Register</a>
+                <a href="/register" class="btn btn-secondary">Register</a>
               </div>
             )}
           </div>
         </div>
         <nav class="main-nav">
           <ul>
-            <li><a href="/">Home</a></li>
-            <li><a href="/forums">Forums</a></li>
-            <li><a href="/members">Members</a></li>
-            <li><a href="/search">Search</a></li>
+            <li class={activeNav === "home" ? "active" : ""}>
+              <a href="/">Home</a>
+            </li>
+            <li class={activeNav === "forums" ? "active" : ""}>
+              <a href="/forums">Forums</a>
+            </li>
+            <li class={activeNav === "members" ? "active" : ""}>
+              <a href="/members">Members</a>
+            </li>
+            <li class={activeNav === "search" ? "active" : ""}>
+              <a href="/search">Search</a>
+            </li>
           </ul>
         </nav>
       </header>
@@ -62,18 +82,57 @@ if (isLoggedIn) {
         <slot />
       </main>
       <footer class="main-footer">
-        <p>&copy; {new Date().getFullYear()} 2004scape Lost City Forum. All rights reserved.</p>
-        <p>
-          <a href="/rules">Forum Rules</a> |
-          <a href="/privacy">Privacy Policy</a> |
-          <a href="/contact">Contact</a>
-        </p>
+        <div class="footer-content">
+          <div class="footer-links">
+            <a href="/rules">Forum Rules</a>
+            <a href="/privacy">Privacy Policy</a>
+            <a href="/contact">Contact</a>
+            <a href="/faq">FAQ</a>
+          </div>
+          <p class="copyright">&copy; {new Date().getFullYear()} 2004scape Lost City Forum. All rights reserved.</p>
+        </div>
       </footer>
     </div>
   </body>
 </html>
 
 <style>
+  .container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  main {
+    flex: 1;
+  }
+
+  .main-header {
+    padding: 1rem 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .logo {
+    text-decoration: none;
+    transition: transform 0.2s ease;
+  }
+
+  .logo:hover {
+    transform: scale(1.02);
+  }
+
+  .logo h1 {
+    margin: 0;
+    color: var(--primary-color);
+  }
+
   .user-controls {
     display: flex;
     align-items: center;
@@ -98,8 +157,119 @@ if (isLoggedIn) {
     text-decoration: underline;
   }
 
+  .username {
+    font-weight: bold;
+  }
+
+  .btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--secondary-bg);
+    transition: background-color 0.2s ease;
+  }
+
+  .btn-icon:hover {
+    background-color: var(--primary-color-light);
+  }
+
   .login-controls {
     display: flex;
     gap: 10px;
+  }
+
+  .main-nav ul {
+    display: flex;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    background-color: var(--secondary-bg);
+    border-radius: 4px;
+  }
+
+  .main-nav li {
+    padding: 0;
+    margin: 0;
+  }
+
+  .main-nav li.active {
+    background-color: var(--primary-color);
+  }
+
+  .main-nav li.active a {
+    color: white;
+  }
+
+  .main-nav a {
+    display: block;
+    padding: 0.8rem 1.2rem;
+    color: var(--text-color);
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+  }
+
+  .main-nav a:hover {
+    background-color: var(--primary-color-light);
+    color: white;
+  }
+
+  .main-footer {
+    margin-top: 2rem;
+    padding: 1.5rem 0;
+    background-color: var(--secondary-bg);
+    border-top: 1px solid var(--border-color);
+  }
+
+  .footer-content {
+    text-align: center;
+  }
+
+  .footer-links {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .footer-links a {
+    color: var(--link-color);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .footer-links a:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+  }
+
+  .copyright {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 768px) {
+    .header-top {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .main-nav ul {
+      flex-wrap: wrap;
+    }
+
+    .main-nav li {
+      flex: 1 1 auto;
+      text-align: center;
+    }
+
+    .logged-in-controls {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
   }
 </style>

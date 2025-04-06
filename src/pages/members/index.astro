@@ -1,102 +1,65 @@
 ---
 import MainLayout from "../../layouts/MainLayout.astro";
+import { getCollection } from "astro:content";
 
-// Mock member data
-const members = [
-  {
-    id: 1,
-    username: "Admin",
-    avatar: "/images/avatars/admin.png",
-    joinDate: "2024-03-01",
-    posts: 87,
-    role: "Administrator",
-    lastActive: "2024-04-05 15:32"
-  },
-  {
-    id: 2,
-    username: "Moderator",
-    avatar: "/images/avatars/default.png",
-    joinDate: "2024-03-02",
-    posts: 54,
-    role: "Moderator",
-    lastActive: "2024-04-04 11:23"
-  },
-  {
-    id: 3,
-    username: "OldschoolPlayer",
-    avatar: "/images/avatars/default.png",
-    joinDate: "2024-03-05",
-    posts: 32,
-    role: "Member",
-    lastActive: "2024-04-04 19:45"
-  },
-  {
-    id: 4,
-    username: "QuestMaster",
-    avatar: "/images/avatars/default.png",
-    joinDate: "2024-03-08",
-    posts: 29,
-    role: "Member",
-    lastActive: "2024-03-28 14:23"
-  },
-  {
-    id: 5,
-    username: "EventCoordinator",
-    avatar: "/images/avatars/default.png",
-    joinDate: "2024-03-10",
-    posts: 26,
-    role: "Member",
-    lastActive: "2024-04-03 21:18"
-  },
-  {
-    id: 6,
-    username: "NewPlayer2004",
-    avatar: "/images/avatars/default.png",
-    joinDate: "2024-04-01",
-    posts: 15,
-    role: "Member",
-    lastActive: "2024-04-05 08:12"
-  },
-  {
-    id: 7,
-    username: "Nostalgic2004",
-    avatar: "/images/avatars/default.png",
-    joinDate: "2024-03-15",
-    posts: 23,
-    role: "Member",
-    lastActive: "2024-04-01 16:54"
-  },
-  {
-    id: 8,
-    username: "GamerFromThePast",
-    avatar: "/images/avatars/default.png",
-    joinDate: "2024-03-20",
-    posts: 19,
-    role: "Member",
-    lastActive: "2024-04-04 22:07"
-  },
-  {
-    id: 9,
-    username: "PvPLegend",
-    avatar: "/images/avatars/default.png",
-    joinDate: "2024-03-25",
-    posts: 28,
-    role: "Member",
-    lastActive: "2024-04-03 21:18"
-  },
-  {
-    id: 10,
-    username: "FirstTimer",
-    avatar: "/images/avatars/default.png",
-    joinDate: "2024-03-27",
-    posts: 12,
-    role: "Member",
-    lastActive: "2024-03-28 14:23"
-  }
-];
+// Get actual member data from the database or content collection
+const allMembers = await getCollection("members");
 
-// Sort members by post count (descending)
-members.sort((a, b) => b.posts - a.posts);
+// Process member data
+let members = allMembers.map(member => ({
+  id: member.id,
+  username: member.data.username,
+  avatar: member.data.avatar || "/images/avatars/default.png",
+  joinDate: new Date(member.data.joinDate).toISOString().split('T')[0],
+  posts: member.data.posts || 0,
+  role: member.data.role || "Member",
+  lastActive: member.data.lastActive || "Never"
+}));
+
+// Get sort parameter from URL
+const url = Astro.url;
+const sortParam = url.searchParams.get('sort') || 'posts';
+const searchQuery = url.searchParams.get('search') || '';
+
+// Filter members if search query exists
+if (searchQuery) {
+  members = members.filter(member =>
+    member.username.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+}
+
+// Sort members based on parameter
+switch(sortParam) {
+  case 'username':
+    members.sort((a, b) => a.username.localeCompare(b.username));
+    break;
+  case 'joinDate':
+    members.sort((a, b) => new Date(b.joinDate) - new Date(a.joinDate));
+    break;
+  case 'lastActive':
+    members.sort((a, b) => new Date(b.lastActive) - new Date(a.lastActive));
+    break;
+  case 'posts':
+  default:
+    members.sort((a, b) => b.posts - a.posts);
+    break;
+}
+
+// Pagination
+const membersPerPage = 10;
+const currentPage = parseInt(url.searchParams.get('page') || '1');
+const totalPages = Math.ceil(members.length / membersPerPage);
+const paginatedMembers = members.slice(
+  (currentPage - 1) * membersPerPage,
+  currentPage * membersPerPage
+);
+
+// Generate pagination links
+const getPageUrl = (page) => {
+  const params = new URLSearchParams(url.searchParams);
+  params.set('page', page.toString());
+  return `?${params.toString()}`;
+};
 ---
 
 <MainLayout title="Members">
@@ -108,45 +71,75 @@ members.sort((a, b) => b.posts - a.posts);
     <h1>Forum Members</h1>
     <div class="sort-controls">
       <span>Sort by:</span>
-      <a href="#" class="active">Posts</a>
-      <a href="#">Username</a>
-      <a href="#">Join Date</a>
-      <a href="#">Last Active</a>
+      <a href={`?sort=posts${searchQuery ? `&search=${searchQuery}` : ''}`} class={sortParam === 'posts' ? 'active' : ''}>Posts</a>
+      <a href={`?sort=username${searchQuery ? `&search=${searchQuery}` : ''}`} class={sortParam === 'username' ? 'active' : ''}>Username</a>
+      <a href={`?sort=joinDate${searchQuery ? `&search=${searchQuery}` : ''}`} class={sortParam === 'joinDate' ? 'active' : ''}>Join Date</a>
+      <a href={`?sort=lastActive${searchQuery ? `&search=${searchQuery}` : ''}`} class={sortParam === 'lastActive' ? 'active' : ''}>Last Active</a>
     </div>
   </div>
 
-  <div class="member-search">
-    <input type="text" placeholder="Search members..." class="form-control">
-    <button class="btn">Search</button>
-  </div>
+  <form class="member-search" method="get">
+    <input
+      type="text"
+      name="search"
+      placeholder="Search members..."
+      class="form-control"
+      value={searchQuery}
+    >
+    <input type="hidden" name="sort" value={sortParam}>
+    <button type="submit" class="btn">Search</button>
+    {searchQuery && (
+      <a href={`?sort=${sortParam}`} class="btn btn-secondary">Clear</a>
+    )}
+  </form>
 
-  <div class="members-grid">
-    {members.map((member) => (
-      <div class="member-card">
-        <div class="member-avatar">
-          <img src={member.avatar} alt={`${member.username}'s avatar`} />
-        </div>
-        <div class="member-info">
-          <div class="member-name">
-            <a href={`/members/${member.id}`}>{member.username}</a>
-            {member.role !== "Member" && <span class={`role-badge ${member.role.toLowerCase()}`}>{member.role}</span>}
+  {members.length === 0 ? (
+    <div class="no-results">
+      <p>No members found matching your search criteria.</p>
+    </div>
+  ) : (
+    <div class="members-grid">
+      {paginatedMembers.map((member) => (
+        <div class="member-card">
+          <div class="member-avatar">
+            <img src={member.avatar} alt={`${member.username}'s avatar`} />
           </div>
-          <div class="member-stats">
-            <div><span>Posts:</span> {member.posts}</div>
-            <div><span>Joined:</span> {member.joinDate}</div>
-            <div><span>Last Active:</span> {member.lastActive}</div>
+          <div class="member-info">
+            <div class="member-name">
+              <a href={`/members/${member.id}`}>{member.username}</a>
+              {member.role !== "Member" && <span class={`role-badge ${member.role.toLowerCase()}`}>{member.role}</span>}
+            </div>
+            <div class="member-stats">
+              <div><span>Posts:</span> {member.posts}</div>
+              <div><span>Joined:</span> {member.joinDate}</div>
+              <div><span>Last Active:</span> {member.lastActive}</div>
+            </div>
           </div>
         </div>
-      </div>
-    ))}
-  </div>
+      ))}
+    </div>
+  )}
 
-  <div class="paginator">
-    <a href="#" class="current">1</a>
-    <a href="#">2</a>
-    <a href="#">3</a>
-    <a href="#">Next &raquo;</a>
-  </div>
+  {totalPages > 1 && (
+    <div class="paginator">
+      {currentPage > 1 && (
+        <a href={getPageUrl(currentPage - 1)}>&laquo; Prev</a>
+      )}
+
+      {[...Array(totalPages)].map((_, i) => (
+        <a
+          href={getPageUrl(i + 1)}
+          class={currentPage === i + 1 ? 'current' : ''}
+        >
+          {i + 1}
+        </a>
+      ))}
+
+      {currentPage < totalPages && (
+        <a href={getPageUrl(currentPage + 1)}>Next &raquo;</a>
+      )}
+    </div>
+  )}
 
   <style>
     .page-header {
@@ -191,6 +184,14 @@ members.sort((a, b) => b.posts - a.posts);
 
     .member-search input {
       flex: 1;
+    }
+
+    .no-results {
+      background-color: var(--forum-topic-bg);
+      padding: 20px;
+      text-align: center;
+      border: 1px solid var(--border-color);
+      margin-bottom: 20px;
     }
 
     .members-grid {
@@ -262,6 +263,14 @@ members.sort((a, b) => b.posts - a.posts);
     .member-stats span {
       font-weight: bold;
       color: #999;
+    }
+
+    .btn-secondary {
+      background-color: #555;
+    }
+
+    .btn-secondary:hover {
+      background-color: #666;
     }
 
     @media (max-width: 768px) {
