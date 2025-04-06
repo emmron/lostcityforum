@@ -5,9 +5,12 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "prebuild": "prisma generate",
     "preview": "astro preview",
     "astro": "astro",
-    "prisma:seed": "node --loader=ts-node/esm prisma/seed.js"
+    "prisma:seed": "node --loader=ts-node/esm prisma/seed.js",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy"
   },
   "dependencies": {
     "@astrojs/node": "^9.1.3",

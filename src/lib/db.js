@@ -1,13 +1,23 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
-// Initialize Prisma client with error logging
+// Initialize Prisma client with error handling and retries
 let prisma;
 
 try {
   prisma = new PrismaClient({
-    log: ['query', 'error', 'warn'],
+    log: ['error', 'warn'],
+    errorFormat: 'pretty',
   });
+
+  // Test the connection
+  prisma.$connect()
+    .then(() => {
+      console.log('Connected to database successfully');
+    })
+    .catch((error) => {
+      console.error('Failed to connect to database:', error);
+    });
 } catch (error) {
   console.error('Failed to initialize Prisma client:', error);
   throw error;
