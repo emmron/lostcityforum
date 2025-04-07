@@ -1,4 +1,4 @@
-import { prisma } from '../../lib/db.js';
+import { db } from 'astro:db';
 
 export async function GET({ request, url }) {
   // Security check
@@ -18,18 +18,16 @@ export async function GET({ request, url }) {
   let dbError = null;
   let envVars = {};
 
-  // Get environment variables (only show partial DATABASE_URL for security)
-  const dbUrl = process.env.DATABASE_URL || 'Not set';
+  // Get environment variables
   envVars = {
     NODE_ENV: process.env.NODE_ENV,
-    DATABASE_URL: dbUrl ? `${dbUrl.substring(0, 10)}...` : 'Not set',
     VERCEL_ENV: process.env.VERCEL_ENV,
   };
 
   // Test database connection
   try {
-    // Try a simple query
-    await prisma.$queryRaw`SELECT 1 as result`;
+    // Try a simple query to user table
+    await db.select().from('User').limit(1);
     dbStatus = 'Connected';
   } catch (error) {
     dbStatus = 'Error';

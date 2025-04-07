@@ -10,8 +10,9 @@ async function main() {
   // Deploy to Vercel with environment variables to skip problematic steps
   const deployCommand =
     'npx vercel deploy --prod ' +
-    '--env PRISMA_GENERATE_SKIP_DUPLICATE=true ' +
-    '--env NODE_ENV=production';
+    '--env NODE_ENV=production ' +
+    '--env ASTRO_DB_ENABLED=true ' +
+    '--env ASTRO_DB_MODE=production';
 
   try {
     console.log(`Running: ${deployCommand}`);
@@ -19,8 +20,10 @@ async function main() {
 
     console.log('\n✅ Deployment initiated!');
     console.log('\nIMPORTANT: Make sure you have set up:');
-    console.log('1. DATABASE_URL environment variable in Vercel dashboard');
-    console.log('2. Created a PostgreSQL database (Vercel, Neon, Supabase, etc.)');
+    console.log('1. Astro DB environment variables in the Vercel dashboard:');
+    console.log('   - ASTRO_DB_ENABLED=true');
+    console.log('   - ASTRO_DB_MODE=production');
+    console.log('   - ASTRO_DB_URL (if using a remote database)');
   } catch (error) {
     console.error('Deployment failed:', error.message);
   }

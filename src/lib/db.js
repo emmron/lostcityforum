@@ -1,35 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import { db as astroDB } from 'astro:db';
 import bcrypt from 'bcryptjs';
 
-// PrismaClient is attached to the `global` object in development to prevent
-// exhausting your database connection limit.
-// Learn more: https://pris.ly/d/help/next-js-best-practices
-
-// Add prisma to the NodeJS global type
-const globalForPrisma = global;
-
-// Initialize Prisma client with connection pooling for Vercel
-const prismaClientSingleton = () => {
-  return new PrismaClient({
-    log: ['error', 'warn'],
-    errorFormat: 'pretty',
-  });
-};
-
-// Create global prisma instance or reuse if already exists
-const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
-
-// If not in production, assign to global object to reuse connections
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
-
-// Test the connection on initialization
-prisma.$connect()
-  .then(() => {
-    console.log('Connected to database successfully');
-  })
-  .catch((error) => {
-    console.error('Failed to connect to database:', error);
-  });
+// Log connection status
+console.log('Astro DB initialized');
 
 // Handle potential connection issues
 process.on('unhandledRejection', (error) => {
@@ -45,39 +18,34 @@ export const db = {
       const passwordHash = await bcrypt.hash(password, 10);
 
       // Create the user in the database
-      return prisma.user.create({
-        data: {
-          username,
-          email,
-          passwordHash,
-        },
-      });
+      return astroDB.insert('User').values({
+        username,
+        email,
+        passwordHash,
+      }).returning();
     },
 
     // Find all users
     async findMany(options = {}) {
-      return prisma.user.findMany(options);
+      return astroDB.select().from('User');
     },
 
     // Find a user by username
     async findByUsername(username) {
-      return prisma.user.findUnique({
-        where: { username },
-      });
+      const users = await astroDB.select().from('User').where({ username });
+      return users.length > 0 ? users[0] : null;
     },
 
     // Find a user by email
     async findByEmail(email) {
-      return prisma.user.findUnique({
-        where: { email },
-      });
+      const users = await astroDB.select().from('User').where({ email });
+      return users.length > 0 ? users[0] : null;
     },
 
     // Find a user by ID
     async findById(id) {
-      return prisma.user.findUnique({
-        where: { id },
-      });
+      const users = await astroDB.select().from('User').where({ id });
+      return users.length > 0 ? users[0] : null;
     },
 
     // Verify a user's password
@@ -87,14 +55,10 @@ export const db = {
 
     // Update user's post count
     async incrementPostCount(userId) {
-      return prisma.user.update({
-        where: { id: userId },
-        data: {
-          postsCount: {
-            increment: 1
-          }
-        }
-      });
+      const user = await this.findById(userId);
+      return astroDB.update('User').set({
+        postsCount: user.postsCount + 1
+      }).where({ id: userId });
     }
   },
 
@@ -102,24 +66,22 @@ export const db = {
   category: {
     // Get all categories with forums
     async getAll() {
-      return prisma.category.findMany({
-        include: {
-          forums: true
-        },
-        orderBy: {
-          sortOrder: 'asc'
-        }
-      });
+      const categories = await astroDB.select().from('Category').orderBy({ sortOrder: 'asc' });
+
+      // Get forums for each category
+      for (const category of categories) {
+        category.forums = await astroDB.select().from('Forum').where({ categoryId: category.id });
+      }
+
+      return categories;
     },
 
     // Create a new category
     async create({ name, sortOrder = 0 }) {
-      return prisma.category.create({
-        data: {
-          name,
-          sortOrder
-        }
-      });
+      return astroDB.insert('Category').values({
+        name,
+        sortOrder
+      }).returning();
     }
   },
 
@@ -127,67 +89,73 @@ export const db = {
   forum: {
     // Get all forums
     async getAll() {
-      return prisma.forum.findMany({
-        orderBy: {
-          sortOrder: 'asc'
-        }
-      });
+      return astroDB.select().from('Forum').orderBy({ sortOrder: 'asc' });
     },
 
     // Get a forum by ID with topics
     async getById(id) {
-      return prisma.forum.findUnique({
-        where: { id: Number(id) },
-        include: {
-          topics: {
-            include: {
-              author: true,
-              posts: {
-                orderBy: {
-                  createdAt: 'desc'
-                },
-                take: 1,
-                include: {
-                  author: true
-                }
-              }
-            },
-            orderBy: [
-              { isSticky: 'desc' },
-              { updatedAt: 'desc' }
-            ]
-          }
+      const forums = await astroDB.select().from('Forum').where({ id: Number(id) });
+
+      if (forums.length === 0) return null;
+
+      const forum = forums[0];
+
+      // Get topics
+      const topics = await astroDB.select().from('Topic').where({ forumId: Number(id) });
+
+      // Get author for each topic
+      for (const topic of topics) {
+        topic.author = await db.user.findById(topic.authorId);
+
+        // Get latest post for each topic
+        const posts = await astroDB.select().from('Post')
+          .where({ topicId: topic.id })
+          .orderBy({ createdAt: 'desc' })
+          .limit(1);
+
+        topic.posts = posts;
+
+        if (posts.length > 0) {
+          posts[0].author = await db.user.findById(posts[0].authorId);
         }
+      }
+
+      // Sort topics by sticky first, then by updatedAt
+      topics.sort((a, b) => {
+        if (a.isSticky !== b.isSticky) return b.isSticky ? 1 : -1;
+        return new Date(b.updatedAt) - new Date(a.updatedAt);
       });
+
+      forum.topics = topics;
+
+      return forum;
     },
 
     // Create a new forum
     async create({ title, description, categoryId, sortOrder = 0 }) {
-      return prisma.forum.create({
-        data: {
-          title,
-          description,
-          sortOrder,
-          category: {
-            connect: { id: Number(categoryId) }
-          }
-        }
-      });
+      return astroDB.insert('Forum').values({
+        title,
+        description,
+        sortOrder,
+        categoryId: Number(categoryId)
+      }).returning();
     },
 
     // Update forum post and topic counts
     async incrementCounts(forumId, incrementTopics = false) {
-      return prisma.forum.update({
-        where: { id: Number(forumId) },
-        data: {
-          postsCount: {
-            increment: 1
-          },
-          topicsCount: incrementTopics ? {
-            increment: 1
-          } : undefined
-        }
-      });
+      const forum = await astroDB.select().from('Forum').where({ id: Number(forumId) }).limit(1);
+
+      if (forum.length === 0) return null;
+
+      const updateData = {
+        postsCount: forum[0].postsCount + 1
+      };
+
+      if (incrementTopics) {
+        updateData.topicsCount = forum[0].topicsCount + 1;
+      }
+
+      return astroDB.update('Forum').set(updateData).where({ id: Number(forumId) });
     }
   },
 
@@ -195,106 +163,97 @@ export const db = {
   topic: {
     // Get a topic by ID with posts
     async getById(id) {
-      return prisma.topic.findUnique({
-        where: { id: Number(id) },
-        include: {
-          forum: true,
-          author: true,
-          posts: {
-            include: {
-              author: true
-            },
-            orderBy: {
-              createdAt: 'asc'
-            }
-          }
-        }
-      });
+      const topics = await astroDB.select().from('Topic').where({ id: Number(id) });
+
+      if (topics.length === 0) return null;
+
+      const topic = topics[0];
+
+      // Get forum details
+      const forums = await astroDB.select().from('Forum').where({ id: topic.forumId });
+      topic.forum = forums.length > 0 ? forums[0] : null;
+
+      // Get author details
+      topic.author = await db.user.findById(topic.authorId);
+
+      // Get posts
+      const posts = await astroDB.select().from('Post')
+        .where({ topicId: Number(id) })
+        .orderBy({ createdAt: 'asc' });
+
+      // Get author for each post
+      for (const post of posts) {
+        post.author = await db.user.findById(post.authorId);
+      }
+
+      topic.posts = posts;
+
+      return topic;
     },
 
     // Create a new topic with initial post
     async create({ title, content, forumId, authorId, isSticky = false, isLocked = false }) {
-      // Create the topic and the first post in a transaction
-      return prisma.$transaction(async (tx) => {
-        // Create the topic
-        const topic = await tx.topic.create({
-          data: {
-            title,
-            forumId: Number(forumId),
-            authorId: Number(authorId),
-            isSticky,
-            isLocked
-          }
-        });
+      // Create the topic
+      const newTopic = await astroDB.insert('Topic').values({
+        title,
+        forumId: Number(forumId),
+        authorId: Number(authorId),
+        isSticky,
+        isLocked
+      }).returning();
 
-        // Create the first post
-        await tx.post.create({
-          data: {
-            content,
-            authorId: Number(authorId),
-            topicId: topic.id
-          }
-        });
+      const topic = newTopic[0];
 
-        // Update forum counts
-        await tx.forum.update({
-          where: { id: Number(forumId) },
-          data: {
-            topicsCount: { increment: 1 },
-            postsCount: { increment: 1 }
-          }
-        });
-
-        // Update user post count
-        await tx.user.update({
-          where: { id: Number(authorId) },
-          data: {
-            postsCount: { increment: 1 }
-          }
-        });
-
-        return topic;
+      // Create the first post
+      await astroDB.insert('Post').values({
+        content,
+        authorId: Number(authorId),
+        topicId: topic.id
       });
+
+      // Update forum counts
+      await astroDB.update('Forum').set({
+        topicsCount: { increment: 1 },
+        postsCount: { increment: 1 }
+      }).where({ id: Number(forumId) });
+
+      // Update user post count
+      await db.user.incrementPostCount(Number(authorId));
+
+      return topic;
     },
 
     // Increment view count
     async incrementViews(id) {
-      return prisma.topic.update({
-        where: { id: Number(id) },
-        data: {
-          views: {
-            increment: 1
-          }
-        }
-      });
+      const topics = await astroDB.select().from('Topic').where({ id: Number(id) });
+
+      if (topics.length === 0) return null;
+
+      return astroDB.update('Topic').set({
+        views: topics[0].views + 1
+      }).where({ id: Number(id) });
     },
 
     // Toggle sticky status
     async toggleSticky(id) {
-      const topic = await prisma.topic.findUnique({
-        where: { id: Number(id) }
-      });
+      const topics = await astroDB.select().from('Topic').where({ id: Number(id) });
 
-      return prisma.topic.update({
-        where: { id: Number(id) },
-        data: {
-          isSticky: !topic.isSticky
-        }
-      });
+      if (topics.length === 0) return null;
+
+      return astroDB.update('Topic').set({
+        isSticky: !topics[0].isSticky
+      }).where({ id: Number(id) });
     },
 
     // Toggle locked status
     async toggleLocked(id) {
-      const topic = await prisma.topic.findUnique({
-        where: { id: Number(id) }
-      });
+      const topics = await astroDB.select().from('Topic').where({ id: Number(id) });
 
-      return prisma.topic.update({
-        where: { id: Number(id) },
-        data: {
-          isLocked: !topic.isLocked
-        }
-      });
+      if (topics.length === 0) return null;
+
+      return astroDB.update('Topic').set({
+        isLocked: !topics[0].isLocked
+      }).where({ id: Number(id) });
     }
   },
 
@@ -302,120 +261,105 @@ export const db = {
   post: {
     // Get a post by ID
     async getById(id) {
-      return prisma.post.findUnique({
-        where: { id: Number(id) },
-        include: {
-          author: true,
-          topic: true
-        }
-      });
+      const posts = await astroDB.select().from('Post').where({ id: Number(id) });
+
+      if (posts.length === 0) return null;
+
+      const post = posts[0];
+
+      // Get author
+      post.author = await db.user.findById(post.authorId);
+
+      // Get topic
+      const topics = await astroDB.select().from('Topic').where({ id: post.topicId });
+      post.topic = topics.length > 0 ? topics[0] : null;
+
+      return post;
     },
 
     // Find posts by user ID
     async findUserPosts(userId) {
-      return prisma.post.findMany({
-        where: {
-          authorId: Number(userId)
-        },
-        include: {
-          topic: true
-        },
-        orderBy: {
-          createdAt: 'desc'
-        },
-        take: 10
-      });
+      const posts = await astroDB.select().from('Post')
+        .where({ authorId: Number(userId) })
+        .orderBy({ createdAt: 'desc' })
+        .limit(10);
+
+      // Get topic for each post
+      for (const post of posts) {
+        const topics = await astroDB.select().from('Topic').where({ id: post.topicId });
+        post.topic = topics.length > 0 ? topics[0] : null;
+      }
+
+      return posts;
     },
 
     // Create a new post
     async create({ content, topicId, authorId, parentId = null }) {
-      // Create post and update counts in a transaction
-      return prisma.$transaction(async (tx) => {
-        // Get the topic to find its forumId
-        const topic = await tx.topic.findUnique({
-          where: { id: Number(topicId) },
-          select: { forumId: true, authorId: true }
-        });
+      // Get the topic to find its forumId
+      const topics = await astroDB.select().from('Topic').where({ id: Number(topicId) });
 
-        // Create the post
-        const post = await tx.post.create({
-          data: {
-            content,
-            authorId: Number(authorId),
-            topicId: Number(topicId),
-            parentId: parentId ? Number(parentId) : null
-          }
-        });
+      if (topics.length === 0) return null;
 
-        // Update topic's updatedAt timestamp
-        await tx.topic.update({
-          where: { id: Number(topicId) },
-          data: { updatedAt: new Date() }
-        });
+      const topic = topics[0];
 
-        // Update forum post count
-        await tx.forum.update({
-          where: { id: topic.forumId },
-          data: {
-            postsCount: { increment: 1 }
-          }
-        });
+      // Create the post
+      const newPost = await astroDB.insert('Post').values({
+        content,
+        authorId: Number(authorId),
+        topicId: Number(topicId),
+        parentId: parentId ? Number(parentId) : null
+      }).returning();
 
-        // Update user post count
-        await tx.user.update({
-          where: { id: Number(authorId) },
-          data: {
-            postsCount: { increment: 1 }
-          }
-        });
+      const post = newPost[0];
 
-        // Create notification for the topic author if this is a reply to their topic
-        // and the reply author is not the topic author
-        if (topic.authorId !== Number(authorId)) {
-          await tx.notification.create({
-            data: {
-              type: 'reply',
-              content: 'Someone replied to your topic',
-              userId: topic.authorId,
-              link: `/topics/${topicId}`
-            }
+      // Update topic's updatedAt timestamp
+      await astroDB.update('Topic').set({
+        updatedAt: new Date()
+      }).where({ id: Number(topicId) });
+
+      // Update forum post count
+      await astroDB.update('Forum').set({
+        postsCount: { increment: 1 }
+      }).where({ id: topic.forumId });
+
+      // Update user post count
+      await db.user.incrementPostCount(Number(authorId));
+
+      // Create notification for the topic author if this is a reply to their topic
+      // and the reply author is not the topic author
+      if (topic.authorId !== Number(authorId)) {
+        await astroDB.insert('Notification').values({
+          type: 'reply',
+          content: 'Someone replied to your topic',
+          userId: topic.authorId,
+          link: `/topics/${topicId}`
+        });
+      }
+
+      // Create notification if this is a reply to a specific post
+      if (parentId) {
+        const parentPosts = await astroDB.select().from('Post').where({ id: Number(parentId) });
+
+        if (parentPosts.length > 0 && parentPosts[0].authorId !== Number(authorId)) {
+          await astroDB.insert('Notification').values({
+            type: 'reply',
+            content: 'Someone replied to your post',
+            userId: parentPosts[0].authorId,
+            link: `/topics/${topicId}#post-${post.id}`
           });
         }
+      }
 
-        // Create notification if this is a reply to a specific post
-        if (parentId) {
-          const parentPost = await tx.post.findUnique({
-            where: { id: Number(parentId) },
-            select: { authorId: true }
-          });
-
-          // Only notify if the reply author is not the parent post author
-          if (parentPost && parentPost.authorId !== Number(authorId)) {
-            await tx.notification.create({
-              data: {
-                type: 'reply',
-                content: 'Someone replied to your post',
-                userId: parentPost.authorId,
-                link: `/topics/${topicId}#post-${post.id}`
-              }
-            });
-          }
-        }
-
-        return post;
-      });
+      return post;
     },
 
     // Edit a post
     async edit({ id, content }) {
-      return prisma.post.update({
-        where: { id: Number(id) },
-        data: {
-          content,
-          isEdited: true,
-          editedAt: new Date()
-        }
-      });
+      return astroDB.update('Post').set({
+        content,
+        isEdited: true,
+        editedAt: new Date()
+      }).where({ id: Number(id) });
     }
   },
 
@@ -423,80 +367,74 @@ export const db = {
   message: {
     // Create a new message
     async create({ subject, content, senderId, receiverId }) {
-      // Create message and notification in a transaction
-      return prisma.$transaction(async (tx) => {
-        // Create the message
-        const message = await tx.message.create({
-          data: {
-            subject,
-            content,
-            senderId: Number(senderId),
-            receiverId: Number(receiverId)
-          }
-        });
+      // Create the message
+      const newMessage = await astroDB.insert('Message').values({
+        subject,
+        content,
+        senderId: Number(senderId),
+        receiverId: Number(receiverId)
+      }).returning();
 
-        // Create notification for receiver
-        await tx.notification.create({
-          data: {
-            type: 'message',
-            content: `New message: ${subject}`,
-            userId: Number(receiverId),
-            link: `/messages/inbox/${message.id}`
-          }
-        });
+      const message = newMessage[0];
 
-        return message;
+      // Create notification for receiver
+      await astroDB.insert('Notification').values({
+        type: 'message',
+        content: `New message: ${subject}`,
+        userId: Number(receiverId),
+        link: `/messages/inbox/${message.id}`
       });
+
+      return message;
     },
 
     // Get inbox messages for a user
     async getInbox(userId) {
-      return prisma.message.findMany({
-        where: {
-          receiverId: Number(userId)
-        },
-        include: {
-          sender: true
-        },
-        orderBy: {
-          createdAt: 'desc'
-        }
-      });
+      const messages = await astroDB.select().from('Message')
+        .where({ receiverId: Number(userId) })
+        .orderBy({ createdAt: 'desc' });
+
+      // Get sender for each message
+      for (const message of messages) {
+        message.sender = await db.user.findById(message.senderId);
+      }
+
+      return messages;
     },
 
     // Get sent messages for a user
     async getSent(userId) {
-      return prisma.message.findMany({
-        where: {
-          senderId: Number(userId)
-        },
-        include: {
-          receiver: true
-        },
-        orderBy: {
-          createdAt: 'desc'
-        }
-      });
+      const messages = await astroDB.select().from('Message')
+        .where({ senderId: Number(userId) })
+        .orderBy({ createdAt: 'desc' });
+
+      // Get receiver for each message
+      for (const message of messages) {
+        message.receiver = await db.user.findById(message.receiverId);
+      }
+
+      return messages;
     },
 
     // Get a single message by ID
     async getById(id, userId) {
-      const message = await prisma.message.findUnique({
-        where: { id: Number(id) },
-        include: {
-          sender: true,
-          receiver: true
-        }
-      });
+      const messages = await astroDB.select().from('Message').where({ id: Number(id) });
+
+      if (messages.length === 0) return null;
+
+      const message = messages[0];
+
+      // Get sender and receiver
+      message.sender = await db.user.findById(message.senderId);
+      message.receiver = await db.user.findById(message.receiverId);
 
       // Verify that the user requesting the message is either the sender or receiver
       if (message && (message.senderId === Number(userId) || message.receiverId === Number(userId))) {
         // Mark as read if the user is the receiver and it's unread
         if (message.receiverId === Number(userId) && !message.isRead) {
-          await prisma.message.update({
-            where: { id: Number(id) },
-            data: { isRead: true }
-          });
+          await astroDB.update('Message').set({
+            isRead: true
+          }).where({ id: Number(id) });
         }
         return message;
       }
@@ -509,46 +447,37 @@ export const db = {
   notification: {
     // Get notifications for a user
     async getForUser(userId) {
-      return prisma.notification.findMany({
-        where: {
-          userId: Number(userId)
-        },
-        orderBy: {
-          createdAt: 'desc'
-        }
-      });
+      return astroDB.select().from('Notification')
+        .where({ userId: Number(userId) })
+        .orderBy({ createdAt: 'desc' });
     },
 
     // Mark a notification as read
     async markAsRead(id) {
-      return prisma.notification.update({
-        where: { id: Number(id) },
-        data: { isRead: true }
-      });
+      return astroDB.update('Notification').set({
+        isRead: true
+      }).where({ id: Number(id) });
     },
 
     // Mark all notifications as read for a user
     async markAllAsRead(userId) {
-      return prisma.notification.updateMany({
-        where: {
-          userId: Number(userId),
-          isRead: false
-        },
-        data: { isRead: true }
+      return astroDB.update('Notification').set({
+        isRead: true
+      }).where({
+        userId: Number(userId),
+        isRead: false
       });
     },
 
     // Get unread notification count for a user
     async getUnreadCount(userId) {
-      return prisma.notification.count({
-        where: {
+      const result = await astroDB.select().from('Notification')
+        .where({
           userId: Number(userId),
           isRead: false
-        }
-      });
+        });
+
+      return result.length;
     }
   }
 };
-
-// Export the Prisma client for direct access if needed
-export { prisma };

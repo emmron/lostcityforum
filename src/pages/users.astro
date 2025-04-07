@@ -1,0 +1,44 @@
+import { db } from 'astro:db';
+import MainLayout from '../layouts/MainLayout.astro';
+
+// Fetch users from Astro DB
+const users = await db.select().from('User');
+
+<MainLayout title="Users - Lost City Forum">
+  <div class="container mx-auto py-8">
+    <h1 class="text-3xl font-bold mb-6">Forum Users</h1>
+
+    <div class="bg-white shadow-md rounded-lg overflow-hidden">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Posts</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {users.map((user) => (
+            <tr>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0 h-10 w-10">
+                    <img class="h-10 w-10 rounded-full" src={user.avatarUrl || "/images/default-avatar.png"} alt={user.username} />
+                  </div>
+                  <div class="ml-4">
+                    <div class="text-sm font-medium text-gray-900">{user.username}</div>
+                    {user.signature && <div class="text-sm text-gray-500">{user.signature}</div>}
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.postsCount}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {new Date(user.createdAt).toLocaleDateString()}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</MainLayout>
