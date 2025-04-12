@@ -1,5 +1,16 @@
 {
-  "buildCommand": "npx astro build",
-  "installCommand": "npm install",
-  "framework": "astro"
+  "version": 2,
+  "buildCommand": "npm run build",
+  "installCommand": "npm install --legacy-peer-deps",
+  "framework": "astro",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/*.js": {
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  },
+  "crons": {
+    "cleanupSessions": "0 0 * * *"
+  }
 }
