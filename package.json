@@ -7,8 +7,8 @@
     "build": "cross-env ASTRO_DATABASE_FILE=./local.db astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "vercel-build": "cross-env ASTRO_DATABASE_FILE=./local.db astro build",
-    "prebuild": "echo 'Setting up database environment'"
+    "vercel-build": "cross-env ASTRO_DATABASE_FILE=./vercel.db astro build",
+    "prebuild": "node -e \"console.log('Setting up database environment for ' + process.env.VERCEL ? 'Vercel' : 'local' + ' build')\""
   },
   "dependencies": {
     "@astrojs/db": "^0.14.10",

@@ -2,6 +2,9 @@ import { db as astroDB, User, Category, Forum, Topic, Post, Message, Notificatio
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
+// Track DB connection status
+let isDbInitialized = false;
+
 // Enhanced logging function with error handling
 const logOperation = (operation, details) => {
   try {
@@ -12,9 +15,29 @@ const logOperation = (operation, details) => {
   return details;
 };
 
+// Function to ensure DB is initialized before operations
+const ensureDbConnection = async () => {
+  if (isDbInitialized) return true;
+
+  try {
+    console.log('[DB:Init] Ensuring database connection...');
+    // Simple query to test connection
+    const result = await astroDB.execute('SELECT 1');
+    isDbInitialized = true;
+    console.log('[DB:Init] Database connection established');
+    return true;
+  } catch (error) {
+    console.error('[DB:Init:Error] Failed to establish database connection:', error);
+    return false;
+  }
+};
+
 // Add safe query execution wrapper with improved error handling
 const safeQuery = async (queryName, queryFn) => {
   try {
+    // Ensure DB is connected before running query
+    await ensureDbConnection();
+
     console.log(`[DB:Query:Start] ${queryName}`);
     const result = await queryFn();
     console.log(`[DB:Query:Success] ${queryName}`);
@@ -197,10 +220,20 @@ export const db = {
     async getAll() {
       console.log('[DB:Category] Getting all categories with forums');
       try {
-        // Use a raw SQL query instead of ORM to avoid syntax errors
-        const result = await astroDB.execute(`SELECT * FROM "Category" ORDER BY "sortOrder" ASC`);
-        const categories = result.rows;
-        console.log(`[DB:Category] Found ${categories.length} categories`);
+        // Ensure DB connection
+        await ensureDbConnection();
+
+        let categories = [];
+        try {
+          // Use a raw SQL query instead of ORM to avoid syntax errors
+          const result = await astroDB.execute(`SELECT * FROM "Category" ORDER BY "sortOrder" ASC`);
+          categories = result.rows || [];
+          console.log(`[DB:Category] Found ${categories.length} categories`);
+        } catch (fetchError) {
+          console.error('[DB:Category:GetAll:FetchError]', fetchError);
+          // Fallback: Return empty array if query fails
+          return [];
+        }
 
         // Get forums for each category
         for (const category of categories) {
@@ -225,6 +258,7 @@ export const db = {
         return categories;
       } catch (error) {
         console.error('[DB:Category:GetAll:Error] Failed to get all categories:', error);
+        // Return empty array on error to avoid breaking the UI
         return [];
       }
     },

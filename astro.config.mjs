@@ -1,6 +1,6 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
-import vercel from '@astrojs/vercel/serverless';
+import vercel from '@astrojs/vercel';
 import db from '@astrojs/db';
 
 // https://astro.build/config
@@ -23,5 +23,8 @@ export default defineConfig({
     optimizeDeps: {
       exclude: ['astro:db'],
     },
+    ssr: {
+      noExternal: ['bcryptjs']
+    }
   }
 });
