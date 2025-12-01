@@ -51,11 +51,49 @@ All commands are run from the root of the project, from a terminal:
 | `npm run dev`             | Starts local dev server at `localhost:4321`      |
 | `npm run build`           | Build your production site to `./dist/`          |
 | `npm run preview`         | Preview your build locally, before deploying     |
+| `npm run db:push`         | Push database schema to remote (Turso)           |
+| `npm run db:seed`         | Seed the remote database with initial data       |
 | `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
 
-## 📝 Deployment
+## 📝 Deployment to Vercel
 
-For deployment to Vercel, follow the standard Astro deployment process with Vercel.
+This project uses Astro DB with Turso (LibSQL) for the database. Follow these steps to deploy:
+
+### 1. Create a Turso Database
+
+1. Sign up at [turso.tech](https://turso.tech) (free tier available)
+2. Install the Turso CLI: `curl -sSfL https://get.tur.so/install.sh | bash`
+3. Login: `turso auth login`
+4. Create a database: `turso db create lostcityforum`
+5. Get your database URL: `turso db show lostcityforum --url`
+6. Create an auth token: `turso db tokens create lostcityforum`
+
+### 2. Push Database Schema
+
+```sh
+# Set environment variables locally
+export ASTRO_DB_REMOTE_URL="libsql://your-database.turso.io"
+export ASTRO_DB_APP_TOKEN="your-turso-token"
+
+# Push schema to remote database
+npm run db:push
+```
+
+### 3. Deploy to Vercel
+
+1. Connect your repository to Vercel
+2. Add the following environment variables in Vercel dashboard:
+   - `ASTRO_DB_REMOTE_URL` - Your Turso database URL
+   - `ASTRO_DB_APP_TOKEN` - Your Turso auth token
+3. Deploy!
+
+### 4. Seed the Database (Optional)
+
+```sh
+npm run db:seed
+```
+
+This will create the initial admin user and sample forum categories.
 
 ## 📁 Project Structure
 

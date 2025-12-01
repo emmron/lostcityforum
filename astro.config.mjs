@@ -14,7 +14,6 @@ export default defineConfig({
     imageService: true,
     devImageService: 'sharp',
     maxDuration: 60,
-    includeFiles: ['./db/seed.ts'],
   }),
 
   integrations: [db()],
