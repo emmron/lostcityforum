@@ -112,7 +112,10 @@ const orderedPosts = renderPosts(rootPosts);
               </>
             )}
             {isLoggedIn && (currentUser?.id === post.author.id || currentUser?.username === "Admin") && (
-              <a href={`/topics/${id}/edit/${post.id}`} title="Edit this post">Edit</a>
+              <>
+                <a href={`/topics/${id}/edit/${post.id}`} title="Edit this post">Edit</a>
+                <a href={`/topics/${id}/delete/${post.id}`} title="Delete this post" class="delete-link">Delete</a>
+              </>
             )}
             {isLoggedIn && currentUser && (
               <a href={`/messages/compose?to=${post.author.username}`} title="Send message">Message</a>
@@ -204,6 +207,14 @@ const orderedPosts = renderPosts(rootPosts);
 
     .post-controls a:hover {
       text-decoration: underline;
+    }
+
+    .post-controls .delete-link {
+      color: #dc3545;
+    }
+
+    .post-controls .delete-link:hover {
+      color: #c82333;
     }
 
     .post-content {
