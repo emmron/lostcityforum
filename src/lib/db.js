@@ -1,5 +1,4 @@
 import { db as astroDB, User, Category, Forum, Topic, Post, Message, Notification } from 'astro:db';
-import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
 // Track DB connection status
@@ -209,6 +208,60 @@ export const db = {
         return result;
       } catch (error) {
         console.error(`[DB:User:IncrementPostCount:Error] ${parsedUserId}`, error);
+        return null;
+      }
+    },
+
+    // Update user profile
+    async updateProfile(userId, { signature, avatarUrl }) {
+      if (!userId) return null;
+
+      const parsedUserId = safeParseId(userId);
+      if (parsedUserId === null) return null;
+
+      console.log(`[DB:User] Updating profile for user: ${parsedUserId}`);
+      try {
+        const updateData = {
+          updatedAt: new Date()
+        };
+
+        if (signature !== undefined) {
+          updateData.signature = signature;
+        }
+
+        if (avatarUrl !== undefined) {
+          updateData.avatarUrl = avatarUrl;
+        }
+
+        const result = await astroDB.update(User).set(updateData).where({ id: parsedUserId });
+        logOperation('User:UpdateProfile', { userId: parsedUserId });
+        return result;
+      } catch (error) {
+        console.error(`[DB:User:UpdateProfile:Error] ${parsedUserId}`, error);
+        return null;
+      }
+    },
+
+    // Change user password
+    async changePassword(userId, newPassword) {
+      if (!userId || !newPassword) return null;
+
+      const parsedUserId = safeParseId(userId);
+      if (parsedUserId === null) return null;
+
+      console.log(`[DB:User] Changing password for user: ${parsedUserId}`);
+      try {
+        const passwordHash = await bcrypt.hash(newPassword, 10);
+
+        const result = await astroDB.update(User).set({
+          passwordHash,
+          updatedAt: new Date()
+        }).where({ id: parsedUserId });
+
+        logOperation('User:ChangePassword', { userId: parsedUserId });
+        return result;
+      } catch (error) {
+        console.error(`[DB:User:ChangePassword:Error] ${parsedUserId}`, error);
         return null;
       }
     }
@@ -949,6 +1002,58 @@ export const db = {
         console.error(`[DB:Post:Edit:Error] ${postId}`, error);
         return null;
       }
+    },
+
+    // Delete a post
+    async delete(id) {
+      if (!id) return null;
+
+      const postId = safeParseId(id);
+      if (postId === null) return null;
+
+      console.log(`[DB:Post] Deleting post: ${postId}`);
+      try {
+        // Get the post first to know which topic and forum to update
+        const post = await this.getById(postId);
+        if (!post) return null;
+
+        // Delete the post
+        await astroDB.delete(Post).where({ id: postId });
+
+        // Update user post count
+        try {
+          if (post.authorId) {
+            const user = await db.user.findById(post.authorId);
+            if (user && user.postsCount > 0) {
+              await astroDB.update(User).set({
+                postsCount: user.postsCount - 1
+              }).where({ id: post.authorId });
+            }
+          }
+        } catch (userUpdateError) {
+          console.error(`[DB:Post:Delete:UpdateUserCount:Error]`, userUpdateError);
+        }
+
+        // Update forum post count
+        try {
+          if (post.topic?.forumId) {
+            const forums = await astroDB.select().from(Forum).where({ id: post.topic.forumId });
+            if (forums && forums.length > 0 && forums[0].postsCount > 0) {
+              await astroDB.update(Forum).set({
+                postsCount: forums[0].postsCount - 1
+              }).where({ id: post.topic.forumId });
+            }
+          }
+        } catch (forumUpdateError) {
+          console.error(`[DB:Post:Delete:UpdateForumCount:Error]`, forumUpdateError);
+        }
+
+        logOperation('Post:Delete', { id: postId });
+        return true;
+      } catch (error) {
+        console.error(`[DB:Post:Delete:Error] ${postId}`, error);
+        return null;
+      }
     }
   },
 
@@ -1195,6 +1300,164 @@ export const db = {
       } catch (error) {
         console.error(`[DB:Notification:GetUnreadCount:Error] ${parsedUserId}`, error);
         return 0;
+      }
+    }
+  },
+
+  // Search operations
+  search: {
+    // Search topics and posts
+    async query({ q, forumId, author, dateRange, searchTitles = true, searchPosts = true }) {
+      if (!q || q.length < 2) return { topics: [], posts: [] };
+
+      console.log(`[DB:Search] Searching for: ${q}`);
+      const searchTerm = `%${q.toLowerCase()}%`;
+      const results = { topics: [], posts: [] };
+
+      try {
+        // Build date filter
+        let dateFilter = null;
+        if (dateRange) {
+          const days = parseInt(dateRange);
+          if (days > 0) {
+            dateFilter = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+          }
+        }
+
+        // Search topics
+        if (searchTitles) {
+          try {
+            let topicQuery = `SELECT * FROM "Topic" WHERE LOWER("title") LIKE $1`;
+            const params = [searchTerm];
+            let paramIndex = 2;
+
+            if (forumId) {
+              topicQuery += ` AND "forumId" = $${paramIndex}`;
+              params.push(parseInt(forumId));
+              paramIndex++;
+            }
+
+            if (dateFilter) {
+              topicQuery += ` AND "createdAt" >= $${paramIndex}`;
+              params.push(dateFilter.toISOString());
+              paramIndex++;
+            }
+
+            topicQuery += ` ORDER BY "createdAt" DESC LIMIT 20`;
+
+            const topicResults = await astroDB.execute(topicQuery, params);
+
+            if (topicResults.rows) {
+              for (const topic of topicResults.rows) {
+                // Get author
+                const authorUser = await db.user.findById(topic.authorId);
+                // Get forum
+                const forums = await astroDB.select().from(Forum).where({ id: topic.forumId });
+                const forum = forums && forums.length > 0 ? forums[0] : null;
+
+                // Filter by author if specified
+                if (author && authorUser?.username?.toLowerCase() !== author.toLowerCase()) {
+                  continue;
+                }
+
+                results.topics.push({
+                  id: topic.id,
+                  type: 'topic',
+                  title: topic.title,
+                  author: authorUser?.username || 'Unknown',
+                  date: new Date(topic.createdAt).toLocaleString(),
+                  forum: forum ? { id: forum.id, name: forum.title } : null,
+                  snippet: `Topic created on ${new Date(topic.createdAt).toLocaleDateString()}`
+                });
+              }
+            }
+          } catch (topicError) {
+            console.error('[DB:Search:Topics:Error]', topicError);
+          }
+        }
+
+        // Search posts
+        if (searchPosts) {
+          try {
+            let postQuery = `SELECT * FROM "Post" WHERE LOWER("content") LIKE $1`;
+            const params = [searchTerm];
+            let paramIndex = 2;
+
+            if (dateFilter) {
+              postQuery += ` AND "createdAt" >= $${paramIndex}`;
+              params.push(dateFilter.toISOString());
+              paramIndex++;
+            }
+
+            postQuery += ` ORDER BY "createdAt" DESC LIMIT 30`;
+
+            const postResults = await astroDB.execute(postQuery, params);
+
+            if (postResults.rows) {
+              for (const post of postResults.rows) {
+                // Get author
+                const authorUser = await db.user.findById(post.authorId);
+
+                // Filter by author if specified
+                if (author && authorUser?.username?.toLowerCase() !== author.toLowerCase()) {
+                  continue;
+                }
+
+                // Get topic
+                const topics = await astroDB.select().from(Topic).where({ id: post.topicId });
+                const topic = topics && topics.length > 0 ? topics[0] : null;
+
+                // Filter by forum if specified
+                if (forumId && topic?.forumId !== parseInt(forumId)) {
+                  continue;
+                }
+
+                // Get forum
+                let forum = null;
+                if (topic?.forumId) {
+                  const forums = await astroDB.select().from(Forum).where({ id: topic.forumId });
+                  forum = forums && forums.length > 0 ? forums[0] : null;
+                }
+
+                // Create snippet with highlighted search term
+                let snippet = post.content.substring(0, 200);
+                const lowerSnippet = snippet.toLowerCase();
+                const termIndex = lowerSnippet.indexOf(q.toLowerCase());
+                if (termIndex !== -1) {
+                  const before = snippet.substring(0, termIndex);
+                  const match = snippet.substring(termIndex, termIndex + q.length);
+                  const after = snippet.substring(termIndex + q.length);
+                  snippet = `...${before}<span class="highlight">${match}</span>${after}...`;
+                } else {
+                  snippet = snippet + '...';
+                }
+
+                results.posts.push({
+                  id: post.id,
+                  type: 'post',
+                  topic: topic ? { id: topic.id, title: topic.title } : null,
+                  author: authorUser?.username || 'Unknown',
+                  date: new Date(post.createdAt).toLocaleString(),
+                  forum: forum ? { id: forum.id, name: forum.title } : null,
+                  snippet
+                });
+              }
+            }
+          } catch (postError) {
+            console.error('[DB:Search:Posts:Error]', postError);
+          }
+        }
+
+        logOperation('Search:Query', {
+          q,
+          topicsFound: results.topics.length,
+          postsFound: results.posts.length
+        });
+
+        return results;
+      } catch (error) {
+        console.error('[DB:Search:Error]', error);
+        return { topics: [], posts: [] };
       }
     }
   }

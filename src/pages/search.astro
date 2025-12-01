@@ -1,57 +1,46 @@
 ---
 import MainLayout from "../layouts/MainLayout.astro";
+import { db } from "../lib/db.js";
 
-// Get search query from URL parameters
-const { q, forum, author, date } = Astro.url.searchParams;
+export const prerender = false;
 
-// Mock search results (only shown if there's a query)
-const searchResults = q ? [
-  {
-    id: 101,
-    type: "topic",
-    title: "Welcome to the Lost City Forum!",
-    author: "Admin",
-    date: "2024-03-15 10:00",
-    forum: { id: 1, name: "Official Announcements" },
-    snippet: "...Welcome to the official <span class='highlight'>2004scape Lost City</span> Forum! This is a place for all fans of the 2004 era..."
-  },
-  {
-    id: 201,
-    type: "topic",
-    title: "What's your favorite Lost City memory?",
-    author: "OldschoolPlayer",
-    date: "2024-04-01 12:34",
-    forum: { id: 3, name: "General Discussion" },
-    snippet: "...I've been feeling nostalgic lately about the good old days of <span class='highlight'>2004scape</span> and particularly the <span class='highlight'>Lost City</span> quest..."
-  },
-  {
-    id: 301,
-    type: "topic",
-    title: "Complete Lost City Quest Guide 2004-style",
-    author: "QuestMaster",
-    date: "2024-03-25 11:30",
-    forum: { id: 4, name: "Guides & Tutorials" },
-    snippet: "<span class='highlight'>Lost City</span> Quest Guide (<span class='highlight'>2004</span> Edition) Requirements: 31 Crafting, 36 Woodcutting, Ability to defeat a level 95 tree spirit..."
-  },
-  {
-    id: 1002,
-    type: "post",
-    topic: { id: 101, title: "Welcome to the Lost City Forum!" },
-    author: "NewMember",
-    date: "2024-03-15 14:32",
-    forum: { id: 1, name: "Official Announcements" },
-    snippet: "...Thanks for setting up this forum! I've been a huge fan of the <span class='highlight'>2004</span> era since I first played back in the day..."
-  },
-  {
-    id: 2001,
-    type: "post",
-    topic: { id: 201, title: "What's your favorite Lost City memory?" },
-    author: "OldschoolPlayer",
-    date: "2024-04-01 12:34",
-    forum: { id: 3, name: "General Discussion" },
-    snippet: "...Mine has to be the first time I encountered the Dramen Tree guardian in <span class='highlight'>Lost City</span>. I was so unprepared..."
+// Get search parameters from URL
+const q = Astro.url.searchParams.get('q') || '';
+const forum = Astro.url.searchParams.get('forum') || '';
+const author = Astro.url.searchParams.get('author') || '';
+const date = Astro.url.searchParams.get('date') || '';
+const searchTitles = Astro.url.searchParams.get('search_titles') !== '0';
+const searchPosts = Astro.url.searchParams.get('search_posts') !== '0';
+
+// Get all forums for the filter dropdown
+const forums = await db.forum.getAll();
+
+// Perform search if there's a query
+let searchResults = [];
+let totalResults = 0;
+
+if (q && q.length >= 2) {
+  try {
+    const results = await db.search.query({
+      q,
+      forumId: forum || null,
+      author: author || null,
+      dateRange: date || null,
+      searchTitles,
+      searchPosts
+    });
+
+    // Combine topics and posts into single results array
+    searchResults = [...results.topics, ...results.posts];
+
+    // Sort by date (newest first)
+    searchResults.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    totalResults = searchResults.length;
+  } catch (error) {
+    console.error('Search error:', error);
   }
-] : [];
+}
 ---
 
 <MainLayout title="Search">
@@ -64,7 +53,8 @@ const searchResults = q ? [
   <form class="search-form" action="/search" method="get">
     <div class="form-group">
       <label for="q" class="form-label">Search Terms</label>
-      <input type="text" id="q" name="q" class="form-control" value={q || ""} required>
+      <input type="text" id="q" name="q" class="form-control" value={q} required minlength="2">
+      <small class="form-help">Minimum 2 characters required</small>
     </div>
 
     <div class="advanced-search">
@@ -72,20 +62,15 @@ const searchResults = q ? [
         <label for="forum" class="form-label">Forum</label>
         <select id="forum" name="forum" class="form-control">
           <option value="">All Forums</option>
-          <option value="1" selected={forum === "1"}>Official Announcements</option>
-          <option value="2" selected={forum === "2"}>Rules & Guidelines</option>
-          <option value="3" selected={forum === "3"}>General Discussion</option>
-          <option value="4" selected={forum === "4"}>Guides & Tutorials</option>
-          <option value="5" selected={forum === "5"}>Technical Support</option>
-          <option value="6" selected={forum === "6"}>Events & Meetups</option>
-          <option value="7" selected={forum === "7"}>Media & Screenshots</option>
-          <option value="8" selected={forum === "8"}>Off-Topic</option>
+          {forums.map(f => (
+            <option value={f.id} selected={forum === String(f.id)}>{f.title}</option>
+          ))}
         </select>
       </div>
 
       <div class="form-group">
         <label for="author" class="form-label">Author</label>
-        <input type="text" id="author" name="author" class="form-control" value={author || ""}>
+        <input type="text" id="author" name="author" class="form-control" value={author} placeholder="Username">
       </div>
 
       <div class="form-group">
@@ -103,57 +88,64 @@ const searchResults = q ? [
 
     <div class="form-group search-options">
       <div>
-        <input type="checkbox" id="search_titles" name="search_titles" value="1" checked>
-        <label for="search_titles">Search Titles Only</label>
+        <input type="checkbox" id="search_titles" name="search_titles" value="1" checked={searchTitles}>
+        <label for="search_titles">Search Topic Titles</label>
       </div>
       <div>
-        <input type="checkbox" id="search_posts" name="search_posts" value="1" checked>
-        <label for="search_posts">Search Posts Content</label>
+        <input type="checkbox" id="search_posts" name="search_posts" value="1" checked={searchPosts}>
+        <label for="search_posts">Search Post Content</label>
       </div>
     </div>
 
     <div class="form-actions">
       <button type="submit" class="btn btn-primary">Search</button>
-      <button type="reset" class="btn">Reset</button>
+      <a href="/search" class="btn">Reset</a>
     </div>
   </form>
 
-  {searchResults.length > 0 && (
+  {q && q.length >= 2 && searchResults.length > 0 && (
     <div class="search-results">
       <h2>Search Results for "{q}"</h2>
-      <p class="result-count">{searchResults.length} results found</p>
+      <p class="result-count">{totalResults} result{totalResults !== 1 ? 's' : ''} found</p>
 
       <div class="result-list">
         {searchResults.map((result) => (
           <div class="result-item">
+            <div class="result-type">
+              <span class={`type-badge ${result.type}`}>{result.type === 'topic' ? 'Topic' : 'Post'}</span>
+            </div>
             <div class="result-title">
               {result.type === "topic" ? (
                 <a href={`/topics/${result.id}`}>{result.title}</a>
               ) : (
-                <a href={`/topics/${result.topic.id}#post-${result.id}`}>Re: {result.topic.title}</a>
+                <a href={`/topics/${result.topic?.id}#post-${result.id}`}>Re: {result.topic?.title || 'Unknown Topic'}</a>
               )}
             </div>
             <div class="result-meta">
-              <span>Posted by {result.author} in <a href={`/forums/${result.forum.id}`}>{result.forum.name}</a> on {result.date}</span>
+              <span>Posted by <strong>{result.author}</strong></span>
+              {result.forum && (
+                <span> in <a href={`/forums/${result.forum.id}`}>{result.forum.name}</a></span>
+              )}
+              <span> on {result.date}</span>
             </div>
             <div class="result-snippet" set:html={result.snippet} />
           </div>
         ))}
       </div>
-
-      <div class="paginator">
-        <a href="#" class="current">1</a>
-        <a href="#">2</a>
-        <a href="#">3</a>
-        <a href="#">Next &raquo;</a>
-      </div>
     </div>
   )}
 
-  {q && searchResults.length === 0 && (
+  {q && q.length >= 2 && searchResults.length === 0 && (
     <div class="no-results">
-      <p>No results found for your search query.</p>
+      <h3>No Results Found</h3>
+      <p>No results found for "<strong>{q}</strong>".</p>
       <p>Try using different keywords or removing filters to broaden your search.</p>
+    </div>
+  )}
+
+  {q && q.length < 2 && (
+    <div class="no-results">
+      <p>Please enter at least 2 characters to search.</p>
     </div>
   )}
 
@@ -168,6 +160,13 @@ const searchResults = q ? [
       padding: 20px;
       border: 1px solid var(--border-color);
       margin-bottom: 30px;
+    }
+
+    .form-help {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 5px;
+      display: block;
     }
 
     .advanced-search {
@@ -208,6 +207,30 @@ const searchResults = q ? [
       border: 1px solid var(--border-color);
       background-color: var(--forum-topic-bg);
       margin-bottom: 15px;
+      position: relative;
+    }
+
+    .result-type {
+      margin-bottom: 8px;
+    }
+
+    .type-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .type-badge.topic {
+      background-color: var(--primary-color);
+      color: white;
+    }
+
+    .type-badge.post {
+      background-color: var(--secondary-color);
+      color: white;
     }
 
     .result-title {
@@ -241,7 +264,7 @@ const searchResults = q ? [
       line-height: 1.5;
     }
 
-    .highlight {
+    :global(.highlight) {
       background-color: rgba(255, 204, 51, 0.3);
       padding: 0 2px;
       border-radius: 2px;
@@ -252,6 +275,11 @@ const searchResults = q ? [
       padding: 20px;
       border: 1px solid var(--border-color);
       text-align: center;
+    }
+
+    .no-results h3 {
+      color: var(--secondary-color);
+      margin-bottom: 10px;
     }
 
     .no-results p {

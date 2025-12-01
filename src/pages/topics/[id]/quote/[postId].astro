@@ -1,0 +1,214 @@
+---
+import MainLayout from "../../../../layouts/MainLayout.astro";
+import { db } from "../../../../lib/db.js";
+
+export const prerender = false;
+
+const { id, postId } = Astro.params;
+
+// Check if user is logged in
+const isLoggedIn = Astro.cookies.has('user_id');
+if (!isLoggedIn) {
+  return Astro.redirect(`/login?returnUrl=${encodeURIComponent(Astro.url.pathname)}`);
+}
+
+const userId = Number(Astro.cookies.get('user_id').value);
+
+// Fetch the post to quote
+const quotedPost = await db.post.getById(Number(postId));
+
+if (!quotedPost) {
+  return Astro.redirect(`/topics/${id}`);
+}
+
+// Fetch topic data
+const topic = await db.topic.getById(Number(id));
+
+if (!topic) {
+  return Astro.redirect('/forums');
+}
+
+// Check if topic is locked
+if (topic.isLocked) {
+  return Astro.redirect(`/topics/${id}`);
+}
+
+// Build the quote block
+const quoteContent = `<blockquote>
+<p><strong>${quotedPost.author?.username || 'Unknown'}</strong> wrote:</p>
+${quotedPost.content}
+</blockquote>
+
+`;
+
+let errorMessage = '';
+let formData = {
+  content: quoteContent
+};
+
+// Handle form submission
+if (Astro.request.method === 'POST') {
+  try {
+    const data = await Astro.request.formData();
+    const content = data.get('content')?.toString().trim();
+
+    formData = { content: content || '' };
+
+    if (!content) {
+      errorMessage = 'Content is required';
+    } else if (content.length < 10) {
+      errorMessage = 'Content must be at least 10 characters long';
+    } else {
+      // Create the post with the quoted content
+      const post = await db.post.create({
+        content,
+        topicId: Number(id),
+        authorId: userId,
+        parentId: Number(postId)
+      });
+
+      // Redirect to the topic, focusing on the new post
+      return Astro.redirect(`/topics/${id}#post-${post.id}`);
+    }
+  } catch (error) {
+    console.error('Error creating reply:', error);
+    errorMessage = 'An error occurred while creating your reply. Please try again.';
+  }
+}
+---
+
+<MainLayout title={`Quote Reply - ${topic.title}`}>
+  <div class="breadcrumbs">
+    <a href="/">Home</a> &raquo;
+    <a href="/forums">Forums</a> &raquo;
+    <a href={`/forums/${topic.forum.id}`}>{topic.forum.title}</a> &raquo;
+    <a href={`/topics/${id}`}>{topic.title}</a> &raquo;
+    Quote Reply
+  </div>
+
+  <div class="quote-reply">
+    <h1>Reply with Quote</h1>
+
+    {errorMessage && (
+      <div class="alert alert-error">
+        {errorMessage}
+      </div>
+    )}
+
+    <div class="original-post">
+      <h3>Quoting {quotedPost.author?.username || 'Unknown'}:</h3>
+      <blockquote>
+        <div class="quoted-content" set:html={quotedPost.content.length > 300 ? quotedPost.content.substring(0, 300) + '...' : quotedPost.content} />
+        <footer>
+          <a href={`/topics/${id}#post-${postId}`}>View original post</a>
+        </footer>
+      </blockquote>
+    </div>
+
+    <form method="POST" class="reply-form">
+      <div class="form-group">
+        <label for="content">Your Reply</label>
+        <textarea id="content" name="content" required class="form-control post-editor" rows="15">{formData.content}</textarea>
+        <div class="editor-help">
+          <p>You can use basic HTML tags: &lt;p&gt;, &lt;h3&gt;, &lt;h4&gt;, &lt;ul&gt;, &lt;ol&gt;, &lt;li&gt;, &lt;strong&gt;, &lt;em&gt;, &lt;a&gt;, &lt;blockquote&gt;</p>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Post Reply</button>
+        <a href={`/topics/${id}`} class="btn">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <style>
+    .quote-reply {
+      background-color: var(--forum-topic-bg);
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      margin-bottom: 20px;
+    }
+
+    .quote-reply h1 {
+      color: var(--secondary-color);
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+
+    .original-post {
+      margin-bottom: 20px;
+      border-left: 4px solid var(--primary-color);
+      padding-left: 15px;
+    }
+
+    .original-post h3 {
+      color: var(--secondary-color);
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+
+    blockquote {
+      margin: 0;
+      padding: 10px 15px;
+      background-color: var(--forum-topic-alt);
+      border-radius: 5px;
+      font-style: italic;
+      color: var(--text-muted);
+    }
+
+    blockquote footer {
+      margin-top: 10px;
+      text-align: right;
+      font-style: normal;
+    }
+
+    .reply-form {
+      max-width: 800px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 10px;
+      background-color: var(--input-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-color);
+    }
+
+    .post-editor {
+      font-family: monospace;
+      line-height: 1.5;
+    }
+
+    .editor-help {
+      margin-top: 5px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .alert {
+      padding: 10px 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+
+    .alert-error {
+      background-color: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+    }
+  </style>
+</MainLayout>
